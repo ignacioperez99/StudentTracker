@@ -1,160 +1,272 @@
 import re, os, csv, tkinter as tk
-from tkinter import Tk, messagebox, filedialog, Toplevel, Menu, StringVar, IntVar
-from tkinter.ttk import Combobox, Frame, Label, Entry, Button, Notebook, LabelFrame
+from tkinter import Tk, messagebox, filedialog, Toplevel, Menu, Canvas, Frame as tkFrame
+from tkinter.ttk import (Combobox, Frame, Label, Entry, Button,  
+Notebook, LabelFrame, Scrollbar)
+import sqlite3
 
 
-class Application(Tk):
+class AutoScrollbar(Scrollbar):
+    # Barra de desplazamiento que se oculta cuando no se
+    # necesita. Sólo funciona con grid.
+    def set(self, lo, hi):
+        if float(lo) <= 0.0 and float(hi) >= 1.0:
+            self.tk.call("grid", "remove", self)
+        else:
+            self.grid()
+        Scrollbar.set(self, lo, hi)
+
+
+class Table:
+
+    def __init__(self, root, data, *args, **kwargs):
+        self.items = 0
+    
+        self.vscrollbar = AutoScrollbar(root)
+        self.vscrollbar.grid(row=0, column=800, sticky="N"+"S")
+
+        self.canvas = Canvas(root, width=850, height=420, 
+                             highlightthickness=0, 
+                             yscrollcommand=self.vscrollbar.set)
+        self.canvas.grid(row=0, column=100, sticky="N"+"S"+"E"+"W")
+
+        self.vscrollbar.config(command=self.canvas.yview)
+
+        # Permite al canvas expandirse
+        root.grid_rowconfigure(0, weight=1)
+        root.grid_columnconfigure(0, weight=1)
+
+        # Se crea el contenido del canvas
+        frame = Frame(self.canvas)
+        frame.rowconfigure(1, weight=1)
+        frame.columnconfigure(1, weight=1)
+
+        # Crea la tabla iterando sobre cada campo de
+        # cada uno de los registros de la consulta.
+        for item in data:
+            row = Frame(frame)
+            for iCol, field in enumerate(item):
+                
+                if iCol == 0:
+                    btn_id = Button(row, text="Ver")
+                    btn_id.pack(side="right")
+
+                else: 
+                    entry = Entry(row)
+                    entry.pack(side="left")
+                    entry.insert(0, str(field))
+                    entry.config(state="readonly")
+            row.pack(side="top")
+
+        self.canvas.create_window(0, 0, anchor="nw", window=frame)
+
+        frame.update_idletasks()
+
+        self.canvas.config(scrollregion=self.canvas.bbox("all"))
+
+
+class TopStudent:
 
     def __init__(self, *args, **kwargs):
-        """ Se ejecuta al crear una instancia de la clase """
+        self.root = Toplevel()
+        self.root.withdraw()
+        self.root.resizable(0,0)
+        self.root.protocol("WM_DELETE_WINDOW", self.root.withdraw)
+
+        self.studentFrame = Frame(self.root, relief="groove", padding=(15,15))
+        self.studentFrame.grid(column=0, row=0, padx=20, pady=20)
+
+        lbl_dni = Label(self.studentFrame, text="DNI: ", width=10)
+        lbl_dni.grid(row=0, column=0, columnspan=10)
+
+        self.dni = Entry(self.studentFrame, width=40)
+        self.dni.grid(row=1, column=0, columnspan=40, pady=(0,15))
+
+        lbl_name = Label(self.studentFrame, text="Nombre: ", width=10)
+        lbl_name.grid(row=2, column=0, columnspan=10)
+
+        self.name = Entry(self.studentFrame, width=40)
+        self.name.grid(row=3, column=0, columnspan=40, pady=(0,15))
+
+        lbl_surname = Label(self.studentFrame, text="Apellido: ", width=10)
+        lbl_surname.grid(row=4, column=0, columnspan=10)
+
+        self.surname = Entry(self.studentFrame, width=40)
+        self.surname.grid(row=5, column=0, columnspan=40, pady=(0,15))
+
+        lbl_email = Label(self.studentFrame, text="Email: ", width=10)
+        lbl_email.grid(row=6, column=0, columnspan=10)
+
+        self.email = Entry(self.studentFrame, width=40)
+        self.email.grid(row=7, column=0, columnspan=40, pady=(0,15))
+
+        lbl_phone = Label(self.studentFrame, text="Teléfono: ", width=10)
+        lbl_phone.grid(row=8, column=0, columnspan=10)
+
+        self.phone = Entry(self.studentFrame, width=40)
+        self.phone.grid(row=9, column=0, columnspan=40, pady=(0,15))
+
+        lbl_institute = Label(self.studentFrame, text="Institución: ", width=10)
+        lbl_institute.grid(row=10, column=0, columnspan=10)
+
+        self.institute = Entry(self.studentFrame, width=40)
+        self.institute.grid(row=11, column=0, columnspan=40, pady=(0,15))
+
+    def show(self):
+        self.root.deiconify()
+
+    def hide(self):
+        self.root.withdraw()
+
+    
+class MainApplication(Tk):
+
+    def __init__(self, *args, **kwargs):
+        # Establece las configuraciones de la ventana principal
         self.root = Tk()
         self.root.title("Sistema de Gestión de Alumnos")
-        self.root.geometry("600x500")
+        self.root.geometry("1200x500")
         self.root.resizable(0,0)
-        self.root.option_add('*tearOff', False)
+        self.root.option_add("*tearOff", False)
+
+        self.cursor = connection.cursor()
+
+        self.top_student = TopStudent()
         self.create_widgets()
-        self.create_window_login()
+
+        self.root.deiconify()
         self.root.mainloop()
 
     def create_widgets(self):
-        self.processes = []
-
+        # Crea la barra menú con sus opciones
         toolbar = Menu(self.root)
-        self.root['menu'] = toolbar
+        self.root["menu"] = toolbar
 
         self.menu_opciones = Menu(toolbar)
         self.menu_ayuda = Menu(toolbar)
-        toolbar.add_cascade(menu=self.menu_opciones, label='Opciones')
-        toolbar.add_cascade(menu=self.menu_ayuda, label='Ayuda')
+        toolbar.add_cascade(menu=self.menu_opciones, label="Acciones")
+        toolbar.add_cascade(menu=self.menu_ayuda, label="Ayuda")
                  
-        self.menu_opciones.add_command(label='Procesos...', 
-                               command=self.show_data_processes)
+        self.menu_opciones.add_command(label="Registrar alumno", 
+                               command=self.top_student.show)
 
-        self.otherFrame = LabelFrame(self.root, text="algo", relief="groove", padding=(20, 10))
-        self.otherFrame.grid(column=0, row=1, columnspan=1, padx=10, pady=10)
+        tabController = Notebook(self.root)
+        tabController.grid(column=0, row=0)
 
-        lbl_policies = Label(self.otherFrame, text="Política de planificación: ")
-        lbl_policies.grid(column=0, row=0, columnspan=10)
+        self.studentsFrame = Frame(tabController, padding=(10,10))
+        tabController.add(self.studentsFrame, text="Alumnos")
 
-        self.policies = Combobox(self.otherFrame, state="readonly", width=33)
-        self.policies['values'] = ("FCFS (First Come First Served)", "Prioridad Externa", "Round-Robin", "SPN (Shortest Process Next)", "SRTN (Shortest Remaining Time Next)")
-        self.policies.current(0)
-        self.policies.grid(column=0, row=1, columnspan=2, pady=5)
+        self.teachersFrame = Frame(tabController, padding=(10,10))
+        tabController.add(self.teachersFrame, text="Docentes")
 
-        lbl_tip = Label(self.otherFrame, text="TIP: ")
-        lbl_tip.grid(column=0, row=2,  pady=5)
+        self.coursesFrame = Frame(tabController, padding=(10,10))
+        tabController.add(self.coursesFrame, text="Cursos")
 
-        self.tip = Entry(self.otherFrame, width=25)
-        self.tip.grid(column=1, row=2, pady=10)
+        self.create_frame_students()
 
-        lbl_tfp = Label(self.otherFrame, text="TFP: ")
-        lbl_tfp.grid(column=0, row=3, pady=10)
+    def create_frame_students(self):
+        self.tableStudentsFrame = Frame(self.studentsFrame, relief="groove", padding=(5,5))
+        self.tableStudentsFrame.grid(column=15, row=0, padx=10)
 
-        self.tfp = Entry(self.otherFrame, width=25)
-        self.tfp.grid(column=1, row=3, pady=10)
+        students = self.cursor.execute("select * from Cursante")
+        table = Table(self.tableStudentsFrame, students.fetchall())
 
-        lbl_tcp = Label(self.otherFrame, text="TPC: ")
-        lbl_tcp.grid(column=0, row=4, pady=10)
+        self.fieldsFrame = Frame(self.studentsFrame, relief="groove", padding=(15,15))
+        self.fieldsFrame.grid(column=0, row=0, padx=10, pady=10)
 
-        self.tcp = Entry(self.otherFrame, width=25)
-        self.tcp.grid(column=1, row=4, pady=10)
+        lbl_newStudent = Label(self.fieldsFrame, text="Formulario de registro")
+        lbl_newStudent.grid(row=0, column=0, columnspan=18, pady=(5,10))
 
-        lbl_quantum = Label(self.otherFrame, text="Quantum: ")
-        lbl_quantum.grid(column=0, row=5)
+        lbl_dni = Label(self.fieldsFrame, text="DNI: ", width=10)
+        lbl_dni.grid(row=1, column=0, columnspan=10)
 
-        self.quantum = Entry(self.otherFrame, width=25)
-        self.quantum.grid(column=1, row=5, pady=10)        
+        self.dni = Entry(self.fieldsFrame, width=40)
+        self.dni.grid(row=2, column=0, columnspan=40, pady=(0,15))
 
-    def create_window_login(self, *args, **kwargs):
-        self.root.withdraw()
-        self.win_login = Toplevel()
-        self.win_login.title("Inicio de sesión")
-        self.win_login.resizable(0,0)
-        self.win_login.protocol("WM_DELETE_WINDOW", self.root.destroy)
+        lbl_name = Label(self.fieldsFrame, text="Nombre: ", width=10)
+        lbl_name.grid(row=3, column=0, columnspan=10)
 
-        lbl_user = Label(self.win_login, text="Usuario: ")
+        self.name = Entry(self.fieldsFrame, width=40)
+        self.name.grid(row=4, column=0, columnspan=40, pady=(0,15))
+
+        lbl_surname = Label(self.fieldsFrame, text="Apellido: ", width=10)
+        lbl_surname.grid(row=5, column=0, columnspan=10)
+
+        self.surname = Entry(self.fieldsFrame, width=40)
+        self.surname.grid(row=6, column=0, columnspan=40, pady=(0,15))
+
+        lbl_email = Label(self.fieldsFrame, text="Email: ", width=10)
+        lbl_email.grid(row=7, column=0, columnspan=10)
+
+        self.email = Entry(self.fieldsFrame, width=40)
+        self.email.grid(row=8, column=0, columnspan=40, pady=(0,15))
+
+        lbl_phone = Label(self.fieldsFrame, text="Teléfono: ", width=10)
+        lbl_phone.grid(row=9, column=0, columnspan=10)
+
+        self.phone = Entry(self.fieldsFrame, width=40)
+        self.phone.grid(row=10, column=0, columnspan=40, pady=(0,15))
+
+        lbl_institute = Label(self.fieldsFrame, text="Institución: ", width=10)
+        lbl_institute.grid(row=11, column=0, columnspan=10)
+
+        self.institute = Entry(self.fieldsFrame, width=40)
+        self.institute.grid(row=12, column=0, columnspan=40, pady=(0,15))
+
+        self.btn_createStudent = Button(self.fieldsFrame, text="Registrar")
+        self.btn_createStudent.grid(row=13, column=0, columnspan=40, pady=5)
+
+
+class WinLogin(Tk):
+
+    def __init__(self, connection, *args, **kwargs):
+        self.cursor = connection.cursor() 
+
+        self.accepted = False
+
+        # Establece las configuraciones de la ventana de logueo
+        self.root = Tk()
+        self.root.title("Inicio de sesión")
+        self.root.resizable(0,0)
+        self.root.protocol("WM_DELETE_WINDOW", self.root.destroy)
+
+        lbl_user = Label(self.root, text="Usuario: ")
         lbl_user.grid(row=0, column=0, padx=(20,10), pady=(10,0))
 
-        self.e_user = Entry(self.win_login, width=25)
+        self.e_user = Entry(self.root, width=25)
         self.e_user.grid(row=0, column=1, padx=(10,20), pady=(20,10)) 
         self.e_user.focus_set()
 
-        lbl_password = Label(self.win_login, text="Contraseña: ")
+        lbl_password = Label(self.root, text="Contraseña: ")
         lbl_password.grid(row=2, column=0, padx=(20,10))
 
-        self.e_password = Entry(self.win_login, width=25)
+        self.e_password = Entry(self.root, width=25)
         self.e_password.grid(row=2, column=1, padx=(10,20), pady=10) 
 
-        btn_login = Button(self.win_login, text="Ingresar", command=self.login)
+        btn_login = Button(self.root, text="Ingresar", command=self.login)
         btn_login.grid(row=3, column=0, columnspan=3, padx=10, pady=(5,20))
 
+        self.root.mainloop()
+
+
     def login(self):
-        # Lógica de logueo
-
-        self.win_login.withdraw()
-        self.root.update()
-        self.root.deiconify()
-
-    def show_data_processes(self):
-        self.processTable.update()
-        self.processTable.deiconify()
-
-    def hide_data_processes(self):
-        self.processTable.withdraw()
-        self.root.update()
-        self.root.deiconify()
-
-    """ def add_process(self):
-        aux_frame = Frame(self.tableFrame)
+        # Busca el administrador que posea el usuario y la contraseña proporcionados.
+        self.cursor.execute("select * from Administrador where usuario = (?) and contrasena = (?)", (self.e_user.get(), self.e_password.get()))
         
-        task = Proceso(StringVar(), IntVar(), IntVar(), IntVar(), IntVar(), 1)
-        self.processes.append(task)
+        # Si lo encontró, completa el logueo. Caso contrario, informa el error.
+        if self.cursor.fetchone():
+            self.accepted = True
+            self.root.destroy()
+        else:
+            messagebox.showerror("Datos inválidos", "El usuario y/o la contraseña son incorrectos.")
 
-        e_name     = Entry(aux_frame, textvariable=task.nombre, width=20)
-        e_name.grid(row=0, column=0)
-        e_arrival  = Entry(aux_frame, textvariable=task.nombre, width=10)
-        e_arrival.grid(row=0, column=1)
-        e_burstF   = Entry(aux_frame, textvariable=task.nombre, width=10)
-        e_burstF.grid(row=0, column=2)
-        e_burstIO  = Entry(aux_frame, textvariable=task.nombre, width=10)
-        e_burstIO.grid(row=0, column=3)
-        e_priority = Entry(aux_frame, textvariable=task.nombre, width=10)
-        e_priority.grid(row=0, column=4)
-
-        aux_frame.pack() """
-        
-    def create_window_processes(self):
-        self.processTable = Toplevel()
-        self.processTable.title("Datos de Procesos")
-        self.processTable.resizable(0,0)
-
-        self.tableFrame = Frame(self.processTable, relief="groove", padding=(20, 10))
-        self.tableFrame.grid(column=0, row=1, columnspan=70, padx=10, pady=10)
-    
-        auxx_frame = Frame(self.tableFrame)
-
-        lbl_name = Label(auxx_frame, text="Nombre")
-        lbl_name.pack()
-        
-        lbl_arrival = Label(auxx_frame, text="Arribo")
-        lbl_arrival.pack()
-        
-        lbl_burstToFinish = Label(auxx_frame, text="Terminar")
-        lbl_burstToFinish.pack()
-        
-        lbl_burstCPU = Label(auxx_frame, text="CPU")
-        lbl_burstCPU.pack()
-        
-        lbl_burstIO = Label(auxx_frame, text="E/S")
-        lbl_burstIO.pack()
-        
-        lbl_priority = Label(auxx_frame, text="Prioridad")
-        lbl_priority.pack()
-
-        btn_add_process = Button(self.processTable, text="[+] Agregar proceso", command=self.add_process)
-        btn_add_process.grid(column=0, row=0, padx=10, pady=(5,20))
-
-        self.hide_data_processes()
 
 if __name__ == "__main__":
-    app = Application()
+    try:
+        connection = sqlite3.connect("./Database.db")
+    except Exception as e:
+        messagebox.showerror("Error de base de datos", e)
+
+    """ win_login = WinLogin(connection)
+    
+    if win_login.accepted: """
+    app = MainApplication(connection)
