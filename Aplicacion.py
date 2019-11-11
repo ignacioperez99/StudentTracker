@@ -1,10 +1,10 @@
-from tkinter import Tk, messagebox, Menu
-from tkinter.ttk import Frame, Label, Entry, Button, Notebook
-from Tabla import Table
-from Cursante import StudentForm
-from Docente import TeacherForm
-from Curso import CourseForm
-from Viewer import Viewer
+from tkinter import Tk, messagebox as mb, Menu, Listbox, StringVar
+from tkinter.ttk import Frame, Label, Entry, Button, Notebook, Combobox
+from Tabla import Tabla
+from Cursante import Cursante, FormCreateCursante, FormDetailsCursante
+from Docente import Docente, FormCreateDocente, FormDetailsDocente 
+""" from Inscripto import Inscripto, FormInscripto  """
+from Curso import Curso, FormCreateCurso, FormDetailsCurso
 import sqlite3
 
 
@@ -17,7 +17,7 @@ class MainApplication(Tk):
         # Establece las configuraciones de la ventana principal
         self.root = Tk()
         self.root.title("Sistema de Gestión de Alumnos")
-        self.root.geometry("1200x500")
+        self.root.geometry("1010x600")
         self.root.resizable(0,0)
         self.root.option_add("*tearOff", False)
 
@@ -32,7 +32,7 @@ class MainApplication(Tk):
         global connection 
 
         # Crea la barra menú con sus opciones
-        """ toolbar = Menu(self.root)
+        toolbar = Menu(self.root)
         self.root["menu"] = toolbar
 
         self.menu_opciones = Menu(toolbar)
@@ -40,59 +40,84 @@ class MainApplication(Tk):
         toolbar.add_cascade(menu=self.menu_opciones, label="Acciones")
         toolbar.add_cascade(menu=self.menu_ayuda, label="Ayuda")
                  
-        self.menu_opciones.add_command(label="Actualizar",
-                                       command=self.update_tables) """
+        self.menu_opciones.add_command(label="Cerrar sesión",
+                                       command=self.update_tables)                                       
 
 
         tabController = Notebook(self.root)
         tabController.grid(column=0, row=0)
 
-        self.studentsFrame = Frame(tabController, padding=(10,10))
-        tabController.add(self.studentsFrame, text="Alumnos")
+        self.frameInicio = Frame(tabController, padding=(10,10))
+        tabController.add(self.frameInicio, text="Inicio")
 
-        self.teachersFrame = Frame(tabController, padding=(10,10))
-        tabController.add(self.teachersFrame, text="Docentes")
+        self.frameCursantes = Frame(tabController, padding=(10,10))
+        tabController.add(self.frameCursantes, text="Alumnos")
 
-        self.coursesFrame = Frame(tabController, padding=(10,10))
-        tabController.add(self.coursesFrame, text="Cursos")
+        self.frameDocentes = Frame(tabController, padding=(10,10))
+        tabController.add(self.frameDocentes, text="Docentes")
+
+        self.frameCursos = Frame(tabController, padding=(10,10))
+        tabController.add(self.frameCursos, text="Cursos")
 
 
-        tableStudentsFrame = Frame(self.studentsFrame, relief="groove", padding=(5,5))
-        tableStudentsFrame.grid(row=0, column=15, padx=10)                                
+        self.formCreateCursante = FormCreateCursante()
+        btn_nuevoCursante = Button(self.frameCursantes, text="[+] Nuevo estudiante",
+                                command=self.formCreateCursante.show)
+        btn_nuevoCursante.grid(row=0, column=0, columnspan=30, pady=(5,10))
 
-        self.tableStudents = Table(tableStudentsFrame, "Cursante", 
-                                   Viewer("Detalles del Alumno", "Cursante", connection),
-                                   850, 420,
-                                   connection)
+        tableCursantesFrame = Frame(self.frameCursantes, relief="groove", padding=(5,5))
+        tableCursantesFrame.grid(row=1, column=0, columnspan=980)                                
 
-        self.form_students = StudentForm(self.studentsFrame, connection, "create")
+        self.tableCursantes = Tabla(tableCursantesFrame, FormDetailsCursante(),
+                                   960, 420)
         
 
-        tableTeachersFrame = Frame(self.teachersFrame, relief="groove", padding=(5,5))
-        tableTeachersFrame.grid(row=0, column=15, padx=10)
+        self.formCreateDocente = FormCreateDocente()
+        btn_nuevoDocente = Button(self.frameDocentes, text="[+] Nuevo docente",
+                                command=self.formCreateDocente.show)
+        btn_nuevoDocente.grid(row=0, column=0, columnspan=30, pady=(5,10))
 
-        self.tableTeachers = Table(tableTeachersFrame, "Docente",
-                                   Viewer("Detalles del Docente", "Docente", connection),
-                                   850, 420,
-                                   connection, {"dni":15, "telefono":15, "titulo":30})
+        tableDocentesFrame = Frame(self.frameDocentes, relief="groove", padding=(5,5))
+        tableDocentesFrame.grid(row=1, column=0, columnspan=980)
 
-        self.form_teachers = TeacherForm(self.teachersFrame, connection, "create")
-        
+        self.tableDocentes = Tabla(tableDocentesFrame, FormDetailsDocente(),
+                                   980, 420, {"dni":15, "telefono":15, "titulo":30})
 
-        tableCoursesFrame = Frame(self.coursesFrame, relief="groove", padding=(5,5))
-        tableCoursesFrame.grid(row=0, column=15, padx=10)
 
-        self.tableCourses = Table(tableCoursesFrame, "Curso",
-                                  Viewer("Detalles del Curso", "Curso", connection),
-                                  850, 420,
-                                  connection, {"nombre":40})
+        self.formCreateCurso = FormCreateCurso()
+        btn_nuevoCurso = Button(self.frameCursos, text="[+] Nuevo curso",
+                                command=self.formCreateCurso.show)
+        btn_nuevoCurso.grid(row=0, column=0, columnspan=30, pady=(5,10))
 
-        self.form_courses = CourseForm(self.coursesFrame, connection, "create")
+        tableCursosFrame = Frame(self.frameCursos, relief="groove", padding=(5,5))
+        tableCursosFrame.grid(row=1, column=0, columnspan=970)
 
-    def update_tables(self, *args, **kwargs):
-        self.tableCourses.check_update(self.form_courses)
-        self.tableStudents.check_update(self.form_students)
-        self.tableTeachers.check_update(self.form_teachers)
+        self.tableCursos = Tabla(tableCursosFrame, FormDetailsCurso(),
+                                  980, 420, {"nombre":40})
+
+
+        lbl_curso = Label(self.frameInicio, text="Seleccione el curso:")
+        lbl_curso.grid(row=0, column=0, columnspan=10, pady=5)
+
+        self.curso = StringVar()
+        values = [dict(item)["codigo"] for item in Curso.get_all()["data"]]
+        cb_curso = Combobox(self.frameInicio, textvariable=self.curso, width=20,
+                               values=values, state="readonly")
+        cb_curso.current(0)
+        cb_curso.grid(row=1, column=0, columnspan=20, pady=(0,15))
+
+        """ self.tablaInicio = Tabla(self.frameInicio,) """
+
+        self.tipo = StringVar()
+        cb_tipos = Combobox(self.frameInicio, textvariable=self.tipo, width=20,
+                            values=("Alumnos", "Docentes"))
+        cb_tipos.current(0)
+        cb_tipos.grid(row=1, column=60, columnspan=20, pady=(0,15))
+
+    def update_tables(self, *args):
+        self.tableCursos.check_update()
+        self.tableCursantes.check_update()
+        self.tableDocentes.check_update()
 
 class WinLogin(Tk):
 
@@ -136,7 +161,7 @@ class WinLogin(Tk):
             self.accepted = True
             self.root.destroy()
         else:
-            messagebox.showerror("Datos inválidos", "El usuario y/o la contraseña son incorrectos.")
+            mb.showerror("Datos inválidos", "El usuario y/o la contraseña son incorrectos.")
 
 if __name__ == "__main__":
     connection = None
@@ -146,7 +171,11 @@ if __name__ == "__main__":
         connection.row_factory = sqlite3.Row
 
     except Exception as e:
-        messagebox.showerror("Error de base de datos", e)
+        mb.showerror("Error de base de datos", e)
+    
+    Curso.connection = connection
+    Cursante.connection = connection
+    Docente.connection = connection
 
     """ win_login = WinLogin()
     

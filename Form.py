@@ -7,20 +7,9 @@
 
 class Form():
 
-    def __init__(self, fields, *args, **kwargs):
+    def __init__(self, fields):
         self.fields = fields
-        self.modified = False
-        self.id_register = None
 
-    def set_id_register(self, id_register):
-        self.id_register = id_register
-
-    def need_update(self):
-        return self.modified
-
-    def updated(self):
-        self.modified = False
-    
     def get_data(self):
         # Retorna un diccionario con la info
         # contenida en cada campo
@@ -36,11 +25,53 @@ class Form():
         # Inserta en cada campo
         # la información que el es enviada.
         dict_data = dict(data)
-
+        
         for key in self.fields:
-            self.fields[key].insert(0, str(dict_data[key]))
+            self.fields[key].set(dict_data[key])
 
     def clean_fields(self):
         # Vacía el contenido de todos los campos
         for key in self.fields:
-            self.fields[key].delete(0,'end')
+            self.fields[key].set("")
+
+    def validate_int(self, var, *args):     
+        value = var.get()
+
+        if not value.isdigit():
+            var.set("".join(x for x in value if x.isdigit()))
+
+    def validate_dni(self, var, *args):
+        value = var.get()
+        
+        if not len(value)<8:
+            var.set(value[:8])
+
+        self.validate_int(var)
+
+    def validate_phone(self, var, *args):
+        value = var.get()
+        
+        if not value.isdigit():
+            var.set("".join(x for x in value if x.isdigit()))
+
+    def validate_date(self, var, *args):
+        pass
+        """ if not len(value)<8:
+            dni.set() """""" 
+        if not value.isdigit():
+            var.set(var.get().f) """
+
+    def validate_str(self, var, *args):
+        value = var.get()
+        
+        if not value.isalpha():
+            var.set("".join(x for x in value if x.isalpha() or x.isspace()))
+
+    def validate_place(self, var, *args):
+        value = var.get()
+        
+        if not value.isalnum():
+            var.set("".join(x for x in value if x.isalnum() or x.isspace()))
+
+    def validate_email(self, var, *args):
+        pass

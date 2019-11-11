@@ -3,19 +3,19 @@ from tkinter.ttk import Frame, Label, Entry, Button
 from Form import Form
 import sqlite3
 
-class Curso:
+class Course:
 
     connection = None
     modified = False
 
     def create(self, data):
-        cur = Curso.connection.cursor()
+        cur = Course.connection.cursor()
         sql = """INSERT INTO `Curso` VALUES 
                   (NULL, ?, ?, ?, ?, ?)"""
 
         try:
             cur.execute(sql, data)
-            Curso.connection.commit()
+            Course.connection.commit()
             self.need_update()
             mb.showinfo("Información", "El registro se ha creado con éxito!")
 
@@ -24,13 +24,13 @@ class Curso:
 
     def delete(self, id_register):
         if mb.askyesnocancel("Confimación", "Está seguro que desea eliminar \nlos datos del curso?"):
-            cur = Curso.connection.cursor()
+            cur = Course.connection.cursor()
             sql = """DELETE FROM `Curso` 
                      WHERE codigo = ?"""
             
             try:
                 cur.execute(sql, (id_register,))
-                Curso.connection.commit()
+                Course.connection.commit()
                 self.need_update()
                 mb.showinfo("Información", "El registro se ha eliminado con éxito!")
 
@@ -39,7 +39,7 @@ class Curso:
 
     def update(self, id_register, data):
         if mb.askyesnocancel("Confimación", "Está seguro que desea modificar \nlos datos del curso?"):
-            cur = Curso.connection.cursor()
+            cur = Course.connection.cursor()
             data.append(id_register)
 
             sql = """UPDATE `Curso` 
@@ -48,27 +48,25 @@ class Curso:
 
             try:
                 cur.execute(sql, data)
-                Curso.connection.commit()
+                Course.connection.commit()
                 self.need_update()
                 mb.showinfo("Información", "El registro se ha modificado con éxito!")
 
             except Exception as e:
                 mb.showwarning("Ha ocurrido un problema", e)
 
-    @classmethod
     def get_all(self):
-        cur = Curso.connection.cursor()
+        cur = Course.connection.cursor()
         sql = """SELECT * FROM `Curso`"""
 
         try:
             cur.execute(sql)
-            return {"names": [ desc[0] for desc in cur.description], "data":cur.fetchall()}
+            return cur.fetchall()
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e)        
 
-    @classmethod
     def get_register(self, id_register):
-        cur = Curso.connection.cursor()
+        cur = Course.connection.cursor()
         sql = """SELECT * FROM `Curso` WHERE codigo = ?"""
 
         try:
@@ -80,69 +78,68 @@ class Curso:
 
     @classmethod
     def need_update(self):
-        Curso.modified = True
+        CourseForm.modified = True
 
     @classmethod
     def is_update(self):
-        return Curso.modified
+        return CourseForm.modified
     
     @classmethod
     def updated(self):
-        Curso.modified = False
+        CourseForm.modified = False
 
 
-class FormCurso(Curso, Form):
+class CourseForm(Course, Form):
     
-    def __init__(self):
-        Curso.__init__(self)
+    def __init__(self, form_type):
+        Course.__init__(self)
         
         # Al momento de crear la ventana, también la oculta
         self.root = Toplevel()
         self.root.withdraw()
+        self.root.title("Crear curso" if (form_type == "create") else "Detalles del Curso")
         self.root.resizable(0,0)
 
         # Al cerrar la ventana, esta sólo se ocultará.
         # Esto evita crearla cada vez que se la necesita.
         self.root.protocol("WM_DELETE_WINDOW", self.root.withdraw)
 
-        self.id_register = None
+        fieldsFrame = Frame(self.root, relief="groove", padding=(15,15))
+        fieldsFrame.grid(row=0, column=0, padx=10, pady=10)
 
-        self.fieldsFrame = Frame(self.root, relief="groove", padding=(15,15))
-        self.fieldsFrame.grid(row=0, column=0, padx=10, pady=10)
-
-        lbl_name = Label(self.fieldsFrame, text="Nombre: ", width=10)
+        lbl_name = Label(fieldsFrame, text="Nombre: ", width=10)
         lbl_name.grid(row=1, column=0, columnspan=10)
 
         name = StringVar()
-        e_name = Entry(self.fieldsFrame, textvariable=name, width=40)
+        e_name = Entry(fieldsFrame, textvariable=name, width=40)
         e_name.grid(row=2, column=0, columnspan=40, pady=(0,15))
 
-        lbl_date_start = Label(self.fieldsFrame, text="Fecha de inicio: ", width=15)
+        lbl_date_start = Label(fieldsFrame, text="Fecha de inicio: ", width=15)
         lbl_date_start.grid(row=3, column=0, columnspan=15)
 
         date_start = StringVar()
-        e_date_start = Entry(self.fieldsFrame, textvariable=date_start, width=40)
+        e_date_start = Entry(fieldsFrame, textvariable=date_start, width=40)
         e_date_start.grid(row=4, column=0, columnspan=40, pady=(0,15))
 
-        lbl_date_end = Label(self.fieldsFrame, text="Fecha de fin: ", width=15)
+        lbl_date_end = Label(fieldsFrame, text="Fecha de fin: ", width=15)
         lbl_date_end.grid(row=5, column=0, columnspan=15)
 
         date_end = StringVar()
-        e_date_end = Entry(self.fieldsFrame, textvariable=date_end, width=40)
+        e_date_end = Entry(fieldsFrame, textvariable=date_end, width=40)
         e_date_end.grid(row=6, column=0, columnspan=40, pady=(0,15))
 
-        lbl_workload = Label(self.fieldsFrame, text="Carga horaria: ", width=15)
+        lbl_workload = Label(fieldsFrame, text="Carga horaria: ", width=15)
         lbl_workload.grid(row=7, column=0, columnspan=15)
 
         workload = StringVar()
-        e_workload = Entry(self.fieldsFrame, textvariable=workload, width=40)
+        e_workload = Entry(fieldsFrame, textvariable=workload, width=40)
         e_workload.grid(row=8, column=0, columnspan=40, pady=(0,15))
 
-        lbl_place = Label(self.fieldsFrame, text="Lugar: ", width=10)
+        lbl_place = Label(fieldsFrame, text="Lugar: ", width=10)
         lbl_place.grid(row=9, column=0, columnspan=10)
 
         place = StringVar()
-        e_place = Entry(self.fieldsFrame, textvariable=place, width=40)
+        e_place = Entry(fieldsFrame, textvariable=place, width=40)
         e_place.grid(row=10, column=0, columnspan=40, pady=(0,15))
 
         Form.__init__(self, {"nombre":name, "fecha_inicio":date_start, "fecha_fin":date_end,
@@ -152,48 +149,24 @@ class FormCurso(Curso, Form):
         date_start.trace("w", lambda *args: self.validate_date(date_start, *args))
         date_end.trace("w", lambda *args: self.validate_date(date_end, *args))
         workload.trace("w", lambda *args: self.validate_int(workload, *args))
-        place.trace("w", lambda *args: self.validate_place(place, *args))
+        place.trace("w", lambda *args: self.validate_str(place, *args))
 
-    def hide(self):
-        # Se oculta la ventana
-        self.root.withdraw()
+        if form_type == "details":
+            btn_modify = Button(fieldsFrame, text="Modificar",
+                                command=lambda r_id=self.id_register, data=self.get_data(): self.update(r_id, data))
+            btn_modify.grid(row=11, column=0, columnspan=20, pady=5)
 
-class FormCreateCurso(FormCurso):
+            btn_delete = Button(fieldsFrame, text="Eliminar",
+                                command=self.delete)
+            btn_delete.grid(row=11, column=20, columnspan=20, pady=5)
 
-    def __init__(self):
-        FormCurso.__init__(self)
+        elif form_type == "create":
+            lbl_newStudent = Label(fieldsFrame, text="Formulario de registro")
+            lbl_newStudent.grid(row=0, column=0, columnspan=18, pady=(5,10))
 
-        self.root.title("Crear curso")
-        
-        lbl_newStudent = Label(self.fieldsFrame, text="Formulario de registro")
-        lbl_newStudent.grid(row=0, column=0, columnspan=18, pady=(5,10))
-
-        btn_createStudent = Button(self.fieldsFrame, text="Registrar",
-                                   command=lambda: self.create(self.get_data()))
-        btn_createStudent.grid(row=11, column=0, columnspan=40, pady=(5,40))
-    
-    def show(self):
-        # Se limpian los campos
-        self.clean_fields()
-
-        # Se muestra la ventana
-        self.root.deiconify()
-
-
-class FormDetailsCurso(FormCurso):
-
-    def __init__(self):
-        FormCurso.__init__(self)
-
-        self.root.title("Detalles del Curso")
-
-        btn_modify = Button(self.fieldsFrame, text="Modificar",
-                            command=lambda: self.update(self.id_register, self.get_data()))
-        btn_modify.grid(row=11, column=0, columnspan=20, pady=5)
-
-        btn_delete = Button(self.fieldsFrame, text="Eliminar",
-                            command=lambda: self.delete(self.id_register))
-        btn_delete.grid(row=11, column=20, columnspan=20, pady=5)
+            btn_createStudent = Button(fieldsFrame, text="Registrar",
+                                            command=self.create)
+            btn_createStudent.grid(row=11, column=0, columnspan=40, pady=(5,40))
 
     def show(self, id_register):
         self.id_register = id_register
@@ -206,3 +179,7 @@ class FormDetailsCurso(FormCurso):
 
         # Se muestra la ventana
         self.root.deiconify()
+
+    def hide(self):
+        # Se oculta la ventana
+        self.root.withdraw()

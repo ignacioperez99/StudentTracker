@@ -12,12 +12,10 @@ class AutoScrollbar(Scrollbar):
         Scrollbar.set(self, lo, hi)
 
 
-class Table:
+class Tabla:
 
-    def __init__(self, root, table_name, viewer, width, height, connection, columns_width=None):
-        self.conn = connection
+    def __init__(self, root, viewer, width, height, columns_width=None):
         self.viewer = viewer
-        self.table_name = table_name
         self.columns_width = columns_width
     
         # Se inicializan ambos scrollbars para el Canvas
@@ -29,79 +27,91 @@ class Table:
 
         # Se inicializa el Canvas y se le
         # agregan los scrollbars
-        canvas = Canvas(root, width=width, height=height, 
+        self.canvas = Canvas(root, width=width, height=height, 
                              highlightthickness=0, 
                              yscrollcommand=vscrollbar.set,
                              xscrollcommand=hscrollbar.set)
-        canvas.grid(row=0, column=0, sticky="N"+"S"+"E"+"W")
+        self.canvas.grid(row=0, column=0, sticky="N"+"S"+"E"+"W")
 
-        vscrollbar.config(command=canvas.yview)
-        hscrollbar.config(command=canvas.xview)
+        vscrollbar.config(command=self.canvas.yview)
+        hscrollbar.config(command=self.canvas.xview)
 
-        # Permite al canvas expandirse
+        # Permite al self.canvas expandirse
         root.grid_rowconfigure(0, weight=1)
         root.grid_columnconfigure(0, weight=1)
 
-        # Se crea el contenido del canvas
-        self.root = Frame(canvas)
+        # Se crea el contenido del self.canvas
+        self.root = Frame(self.canvas)
         self.root.rowconfigure(1, weight=1)
         self.root.columnconfigure(1, weight=1)
+        
 
-        self.update()
+        names = self.viewer.get_all()["names"]
 
-        canvas.create_window(0, 0, anchor="nw", window=self.root)
+        frameNames = Frame(self.root)
+        for name in names:
+            e = Entry(frameNames, width=self.columns_width[name] 
+                                        if self.columns_width 
+                                        and name in self.columns_width 
+                                        else 20)
+            e.insert(0, str(name).replace("_"," ").capitalize())
+            e.config(state="readonly")
+            e.pack(side="left")
+        frameNames.pack(side="top", padx=(0,75))
+        
+        self.update_table()
 
+        self.canvas.create_window(0, 0, anchor="nw", window=self.root)
+         
         self.root.update_idletasks()
+        
+        """ self.canvas.config(scrollregion=self.canvas.bbox("all")) """
+        
 
-        canvas.config(scrollregion=canvas.bbox("all"))
 
-    def check_update(self, *args, **kwargs):
-        update = False
 
-        if self.viewer.form.need_update():
-            update = True
-            self.update()
-            self.viewer.form.updated()
+    def check_update(self):
+        if self.viewer.is_update():
+            self.update_table()
+            self.viewer.updated()
 
-        if not update:
-            for form in args:
-                update = form.need_update()
-                if update:
-                    self.update()
-                    form.updated()
-                    return
+    def update_table(self):
+        """ childrens = self.root.winfo_children()
+        for i in range(1, len(childrens)):
+            childrens[i].destroy() """
 
-    def update(self):
-        print(f"se updateo {self.table_name}")
         if self.root.winfo_children():
             self.root.winfo_children()[0].destroy()
 
-        cur = self.conn.cursor()
+        self.viewer.hide()
+
         # Se obtiene la tabla completa de la base de datos
-        data = cur.execute("select * from {}".format(self.table_name))
+        data =  self.viewer.get_all()["data"]
 
         frame = Frame(self.root)
-
+            
         # Crea la tabla iterando sobre cada campo de
         # cada uno de los registros de la consulta.
-        for item in data.fetchall():
+        for item in data:
             row = Frame(frame)
 
             for field in dict(item):
                 if field == 'codigo':
                     btn_id = Button(row, text="Ver", command= lambda index=item[field]: self.viewer.show(index))
                     btn_id.pack(side="right")
-                else:
-                    # Se utiliza un operador ternario para hacer más configurable
-                    # a la tabla, permitiendo modificar el tamaño de las columnas
-                    entry = Entry(row, width=self.columns_width[field] 
-                                                if self.columns_width 
-                                                and field in self.columns_width 
-                                                else 20)
-                    entry.pack(side="left")
-                    entry.insert(0, str(item[field]))
-                    entry.config(state="readonly")
+                
+                # Se utiliza un operador ternario para hacer más configurable
+                # a la tabla, permitiendo modificar el tamaño de las columnas
+                entry = Entry(row, width=self.columns_width[field] 
+                                            if self.columns_width 
+                                            and field in self.columns_width 
+                                            else 20)
+                entry.pack(side="left")
+                entry.insert(0, str(item[field]))
+                entry.config(state="readonly")
 
             row.pack(side="top")
 
         frame.pack()
+
+        self.canvas.config(scrollregion=(0,0,0,1000))
