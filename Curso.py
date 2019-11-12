@@ -8,6 +8,7 @@ class Curso:
     connection = None
     modified = False
 
+    @classmethod
     def create(self, data):
         cur = Curso.connection.cursor()
         sql = """INSERT INTO `Curso` VALUES 
@@ -22,6 +23,7 @@ class Curso:
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e)
 
+    @classmethod
     def delete(self, id_register):
         if mb.askyesnocancel("Confimación", "Está seguro que desea eliminar \nlos datos del curso?"):
             cur = Curso.connection.cursor()
@@ -37,6 +39,7 @@ class Curso:
             except Exception as e:
                 mb.showwarning("Ha ocurrido un problema", e)
 
+    @classmethod
     def update(self, id_register, data):
         if mb.askyesnocancel("Confimación", "Está seguro que desea modificar \nlos datos del curso?"):
             cur = Curso.connection.cursor()
@@ -77,6 +80,61 @@ class Curso:
 
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e)       
+
+    @classmethod
+    def get_cursantes(self, id_curso):
+        cur = Curso.connection.cursor()
+        sql = """SELECT C.codigo, C.nombre, C.apellido 
+                 FROM `Inscripto` as I, `Cursante` as C
+                 WHERE I.curso = ?"""
+
+        try:
+            cur.execute(sql, (id_curso,))
+            return cur.fetchall()
+
+        except Exception as e:
+            mb.showwarning("Ha ocurrido un problema", e) 
+    
+    @classmethod
+    def get_docentes(self, id_curso):
+        cur = Curso.connection.cursor()
+        sql = """SELECT D.codigo, D.nombre, D.apellido 
+                 FROM `Docente` as D, `Curso` as C, `DocenteCurso` as DC
+                 WHERE I.curso = ?"""
+
+        try:
+            cur.execute(sql, (id_curso,))
+            return cur.fetchall()
+
+        except Exception as e:
+            mb.showwarning("Ha ocurrido un problema", e) 
+
+    @classmethod
+    def get_no_miembros(self, id_curso):
+        cur = Curso.connection.cursor()
+        sql_cursantes = """SELECT DISTINCT C.codigo, C.nombre, C.apellido 
+                           FROM `Cursante` as C
+                           WHERE C.codigo NOT IN (
+                                SELECT I.cursante
+                                FROM `Inscripto` as I
+                                WHERE I.curso = ?
+                           )"""
+        sql_docentes = """SELECT DISTINCT D.codigo, D.nombre, D.apellido
+                          FROM `Docente` as D, `Curso` as C
+                          WHERE D.codigo NOT IN (
+                                SELECT DC.docente
+                                FROM `DocenteCurso` as DC
+                                WHERE DC.curso = ?
+                          )"""
+
+        try:
+            cursantes= cur.execute(sql_cursantes, (id_curso,)).fetchall()
+            docentes= cur.execute(sql_docentes, (id_curso,)).fetchall()
+            return {"cursantes": (list(row) for row in cursantes), 
+                    "docentes": (list(row) for row in docentes)}
+
+        except Exception as e:
+            mb.showwarning("Ha ocurrido un problema", e) 
 
     @classmethod
     def need_update(self):

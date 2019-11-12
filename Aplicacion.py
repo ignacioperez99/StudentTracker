@@ -11,9 +11,6 @@ import sqlite3
 class MainApplication(Tk):
 
     def __init__(self, *args, **kwargs):
-        global connection
-        self.cursor = connection.cursor()
-
         # Establece las configuraciones de la ventana principal
         self.root = Tk()
         self.root.title("Sistema de Gestión de Alumnos")
@@ -29,10 +26,9 @@ class MainApplication(Tk):
         self.root.mainloop()
 
     def create_widgets(self):
-        global connection 
 
         # Crea la barra menú con sus opciones
-        toolbar = Menu(self.root)
+        """ toolbar = Menu(self.root)
         self.root["menu"] = toolbar
 
         self.menu_opciones = Menu(toolbar)
@@ -41,7 +37,7 @@ class MainApplication(Tk):
         toolbar.add_cascade(menu=self.menu_ayuda, label="Ayuda")
                  
         self.menu_opciones.add_command(label="Cerrar sesión",
-                                       command=self.update_tables)                                       
+                                       command=self.update_tables)   """                                     
 
 
         tabController = Notebook(self.root)
@@ -97,22 +93,72 @@ class MainApplication(Tk):
 
 
         lbl_curso = Label(self.frameInicio, text="Seleccione el curso:")
-        lbl_curso.grid(row=0, column=0, columnspan=10, pady=5)
+        lbl_curso.grid(row=0, column=0)
 
-        self.curso = StringVar()
+        self.id_curso = StringVar()
         values = [dict(item)["codigo"] for item in Curso.get_all()["data"]]
-        cb_curso = Combobox(self.frameInicio, textvariable=self.curso, width=20,
+        cb_curso = Combobox(self.frameInicio, textvariable=self.id_curso, width=20,
                                values=values, state="readonly")
         cb_curso.current(0)
-        cb_curso.grid(row=1, column=0, columnspan=20, pady=(0,15))
+        cb_curso.grid(row=1, column=0)
 
-        """ self.tablaInicio = Tabla(self.frameInicio,) """
+
+
+        frameInscripcion = Frame(self.frameInicio, relief="groove", padding=(10,10))
 
         self.tipo = StringVar()
-        cb_tipos = Combobox(self.frameInicio, textvariable=self.tipo, width=20,
+        cb_tipos = Combobox(frameInscripcion, textvariable=self.tipo, width=20,
                             values=("Alumnos", "Docentes"))
-        cb_tipos.current(0)
-        cb_tipos.grid(row=1, column=60, columnspan=20, pady=(0,15))
+        cb_tipos.current(1)
+        cb_tipos.config(state="readonly")
+        cb_tipos.grid(row=0, column=10, columnspan=20, pady=(0,15))
+
+        lbl_nameCurso = (frameInscripcion)
+        lbl_nameCurso.grid(row=0, column=0)
+
+        self.listaMiembros = Listbox(frameInscripcion, height=25, width=40)
+        for row in dict(Curso.get_cursantes(self.id_curso.get())):
+            self.listaMiembros.insert("end", list(row))
+        self.listaMiembros.grid(row=1, column=0)
+
+
+        self.listaPersonas = Listbox(frameInscripcion, selectmode="extended", height=25, width=40)
+        data = Curso.get_no_miembros(self.id_curso.get())
+        data = (data["cursantes"] if self.tipo.get()=="Alumnos" else data["docentes"])
+        for row in data:
+            self.listaPersonas.insert("end", row)
+        self.listaPersonas.grid(row=1, column=15)
+
+        btn_inscribir = Button(frameInscripcion, text="Inscribir\n   <---", width=10,
+                               command=lambda: print(self.listaPersonas.selection_get()))
+        btn_inscribir.grid(row=1, column=10, padx=10, pady=(0,100))
+
+        btn_eliminar = Button(frameInscripcion, text="Dar de baja\n       --->", width=10,
+                               command=lambda: print(self.listaPersonas.selection_get()))
+        btn_eliminar.grid(row=1, column=10, padx=10)
+
+
+        frameAsistencias = Frame(self.frameInicio, relief="groove", padding=(10,10))
+
+        lbl_asist = Label(frameAsistencias, text="Ingrese una fecha:")
+        lbl_asist.grid(row=0, column=0)
+
+        """ self.fecha = StringVar()
+        e_fecha = Entry(frameAsistencias, textvariable=self.fecha)
+        e_fecha.grid(row=1, column=0, pady=10)
+
+        self.listaInscriptos = Listbox(frameAsistencias, height=21, width=40)
+        for row in dict(Curso.get_cursantes(self.id_curso.get())):
+            self.listaInscriptos.insert("end", list(row))
+        self.listaInscriptos.grid(row=2, column=0)
+
+        btn_asist = Button(frameAsistencias, text="Cargar asistencia", width=15,
+                               command=lambda: print(self.listaInscriptos.selection_get()))
+        btn_asist.grid(row=3, column=0, pady=(10,5))
+
+        frameAsistencias.grid(row=2, column=1, pady=(10,0)) """
+        
+        frameInscripcion.grid(row=2, column=0, padx=40, pady=(10,0))
 
     def update_tables(self, *args):
         self.tableCursos.check_update()

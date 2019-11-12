@@ -55,6 +55,7 @@ class Docente:
             except Exception as e:
                 mb.showwarning("Ha ocurrido un problema", e)
 
+    @classmethod
     def get_all(self):
         cur = Docente.connection.cursor()
         sql = """SELECT * FROM `Docente`"""
@@ -66,6 +67,7 @@ class Docente:
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e)     
 
+    @classmethod
     def get_register(self, id_register):
         cur = Docente.connection.cursor()
         sql = """SELECT * FROM `Docente` WHERE codigo = ?"""

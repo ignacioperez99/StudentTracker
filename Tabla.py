@@ -63,12 +63,7 @@ class Tabla:
 
         self.canvas.create_window(0, 0, anchor="nw", window=self.root)
          
-        self.root.update_idletasks()
-        
-        """ self.canvas.config(scrollregion=self.canvas.bbox("all")) """
-        
-
-
+        """ self.root.update_idletasks() """
 
     def check_update(self):
         if self.viewer.is_update():
@@ -76,12 +71,8 @@ class Tabla:
             self.viewer.updated()
 
     def update_table(self):
-        """ childrens = self.root.winfo_children()
-        for i in range(1, len(childrens)):
-            childrens[i].destroy() """
-
-        if self.root.winfo_children():
-            self.root.winfo_children()[0].destroy()
+        if len(self.root.winfo_children()) > 1:
+            self.root.winfo_children()[1].destroy()
 
         self.viewer.hide()
 
@@ -114,4 +105,5 @@ class Tabla:
 
         frame.pack()
 
-        self.canvas.config(scrollregion=(0,0,0,1000))
+        height = (len(frame.winfo_children())*25)+25
+        self.canvas.config(scrollregion=(0,0,0,height))
