@@ -14,7 +14,7 @@ class AutoScrollbar(Scrollbar):
 
 class Tabla:
 
-    def __init__(self, root, viewer, width, height, columns_width=None):
+    def __init__(self, root, viewer, width=960, height=420, columns_width=None):
         self.viewer = viewer
         self.columns_width = columns_width
     
@@ -44,7 +44,6 @@ class Tabla:
         self.root = Frame(self.canvas)
         self.root.rowconfigure(1, weight=1)
         self.root.columnconfigure(1, weight=1)
-        
 
         names = self.viewer.get_all()["names"]
 

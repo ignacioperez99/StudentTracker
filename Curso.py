@@ -1,6 +1,7 @@
-from tkinter import messagebox as mb, StringVar, Toplevel
+from tkinter import messagebox as mb, StringVar, Toplevel, Listbox
 from tkinter.ttk import Frame, Label, Entry, Button
 from Form import Form
+from Calendar import DatePicker
 import sqlite3
 
 class Curso:
@@ -82,29 +83,23 @@ class Curso:
             mb.showwarning("Ha ocurrido un problema", e)       
 
     @classmethod
-    def get_cursantes(self, id_curso):
+    def get_miembros(self, id_curso):
         cur = Curso.connection.cursor()
-        sql = """SELECT C.codigo, C.nombre, C.apellido 
-                 FROM `Inscripto` as I, `Cursante` as C
-                 WHERE I.curso = ?"""
+        sql_cursantes = """SELECT C.codigo, C.nombre, C.apellido 
+                           FROM `Inscripto` as I, `Cursante` as C
+                           WHERE I.curso = ?"""
+        sql_docentes = """SELECT D.codigo, D.nombre, D.apellido 
+                          FROM `Docente` as D, `Curso` as C, `DocenteCurso` as DC
+                          WHERE DC.curso = ?"""
 
         try:
-            cur.execute(sql, (id_curso,))
-            return cur.fetchall()
+            cursantes= cur.execute(sql_cursantes, (id_curso,)).fetchall()
+            docentes= cur.execute(sql_docentes, (id_curso,)).fetchall()
 
-        except Exception as e:
-            mb.showwarning("Ha ocurrido un problema", e) 
-    
-    @classmethod
-    def get_docentes(self, id_curso):
-        cur = Curso.connection.cursor()
-        sql = """SELECT D.codigo, D.nombre, D.apellido 
-                 FROM `Docente` as D, `Curso` as C, `DocenteCurso` as DC
-                 WHERE I.curso = ?"""
-
-        try:
-            cur.execute(sql, (id_curso,))
-            return cur.fetchall()
+            return {"cursantes": {"names": [ desc[0] for desc in cur.description], 
+                                  "data":  (list(row) for row in cursantes)}, 
+                    "docentes":  {"names": [ desc[0] for desc in cur.description], 
+                                  "data":(list(row) for row in docentes)}}
 
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e) 
@@ -130,8 +125,11 @@ class Curso:
         try:
             cursantes= cur.execute(sql_cursantes, (id_curso,)).fetchall()
             docentes= cur.execute(sql_docentes, (id_curso,)).fetchall()
-            return {"cursantes": (list(row) for row in cursantes), 
-                    "docentes": (list(row) for row in docentes)}
+            
+            return {"cursantes":{"names": [ desc[0] for desc in cur.description], 
+                                  "data": (list(row) for row in cursantes)}, 
+                    "docentes": {"names": [ desc[0] for desc in cur.description], 
+                                 "data": (list(row) for row in docentes)}}
 
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e) 
@@ -149,19 +147,170 @@ class Curso:
         Curso.modified = False
 
 
+class FormInscriptos(Curso, Form):
+
+    def __init__(self, form_type):
+        Curso.__init__(self)
+        Form.__init__(self)
+
+        self.id_curso = None
+        self.form_type = form_type
+
+        fieldsFrame = Frame(self.root, padding=10)
+        fieldsFrame.grid(row=0, column=0, padx=10, pady=10)
+
+        self.listaPersonas = Listbox(fieldsFrame, selectmode="extended", height=25, width=40)
+        self.listaPersonas.grid(row=0, column=0, pady=(0,10))
+
+        btn_aceptar = Button(fieldsFrame, text="Aceptar")
+        btn_aceptar.grid(row=1, column=0)
+
+        if form_type == "add":
+            self.set_title("Inscribir alumnos")
+            btn_aceptar.config(command=lambda: print("hola"))
+
+        elif form_type == "remove":
+            self.set_title("Eliminar alumnos")
+            btn_aceptar.config(command=lambda: print("chau"))
+
+    def get_all(self):
+        if self.form_type == "add":
+            return self.get_no_miembros(self.id_curso)["cursantes"]
+
+        elif self.form_type == "remove":
+            return self.get_miembros(self.id_curso)["cursantes"]
+
+    def show(self, id_curso):
+        self.id_curso = id_curso
+
+        if self.form_type == "add":
+            data = self.get_no_miembros(self.id_curso)["cursantes"]["data"]
+
+        elif self.form_type == "remove":
+            data = self.get_miembros(self.id_curso)["cursantes"]["data"]
+        
+        for row in data:
+            self.listaPersonas.insert("end", row)
+
+        super().show()
+
+    def hide(self):
+        self.listaPersonas.delete(0, 'end')
+
+        super().hide()
+
+
+class FormAsistencias(Curso, Form):
+
+    def __init__(self, form_type):
+        Curso.__init__(self)
+        Form.__init__(self)
+
+        self.id_curso = None
+        self.form_type = form_type
+
+        fieldsFrame = Frame(self.root, padding=10)
+        fieldsFrame.grid(row=0, column=0, padx=10, pady=10)
+
+        self.listaPersonas = Listbox(fieldsFrame, selectmode="extended", height=25, width=40)
+        self.listaPersonas.grid(row=0, column=0, pady=(0,10))
+
+        btn_aceptar = Button(fieldsFrame, text="Aceptar")
+        btn_aceptar.grid(row=1, column=0)
+
+        if form_type == "add":
+            self.set_title("Inscribir alumnos")
+            btn_aceptar.config(command=lambda: print("hola"))
+
+        elif form_type == "remove":
+            self.set_title("Eliminar alumnos")
+            btn_aceptar.config(command=lambda: print("chau"))
+
+    def get_all(self):
+        if self.form_type == "add":
+            return self.get_no_miembros(self.id_curso)["cursantes"]
+
+        elif self.form_type == "remove":
+            return self.get_miembros(self.id_curso)["cursantes"]
+
+    def show(self, id_curso):
+        self.id_curso = id_curso
+
+        if self.form_type == "add":
+            data = self.get_no_miembros(self.id_curso)["cursantes"]["data"]
+
+        elif self.form_type == "remove":
+            data = self.get_miembros(self.id_curso)["cursantes"]["data"]
+        
+        for row in data:
+            self.listaPersonas.insert("end", row)
+
+        super().show()
+
+    def hide(self):
+        self.listaPersonas.delete(0, 'end')
+
+        super().hide()
+
+
+class FormDocentesCurso(Curso, Form):
+
+    def __init__(self, form_type):
+        Curso.__init__(self)
+        Form.__init__(self)
+
+        self.id_curso = None
+        self.form_type = form_type
+
+        fieldsFrame = Frame(self.root, padding=10)
+        fieldsFrame.grid(row=0, column=0, padx=10, pady=10)
+
+        self.listaPersonas = Listbox(fieldsFrame, selectmode="extended", height=25, width=40)
+        self.listaPersonas.grid(row=0, column=0, pady=(0,10))
+
+        btn_aceptar = Button(fieldsFrame, text="Aceptar")
+        btn_aceptar.grid(row=1, column=0)
+
+        if form_type == "add":
+            self.set_title("Agregar docentes")
+            btn_aceptar.config(command=lambda: print("hola"))
+
+        elif form_type == "remove":
+            self.set_title("Eliminar docentes")
+            btn_aceptar.config(command=lambda: print("chau"))
+
+    def get_all(self):
+        if self.form_type == "add":
+            return self.get_no_miembros(self.id_curso)["docentes"]
+
+        elif self.form_type == "remove":
+            return self.get_miembros(self.id_curso)["docentes"]
+
+    def show(self, id_curso):
+        self.id_curso = id_curso
+
+        if self.form_type == "add":
+            data = self.get_no_miembros(self.id_curso)["docentes"]["data"]
+
+        elif self.form_type == "remove":
+            data = self.get_miembros(self.id_curso)["docentes"]["data"]
+        
+        for row in data:
+            self.listaPersonas.insert("end", row)
+
+        super().show()
+
+    def hide(self):
+        self.listaPersonas.delete(0, 'end')
+
+        super().hide()
+
+
 class FormCurso(Curso, Form):
     
     def __init__(self):
         Curso.__init__(self)
-        
-        # Al momento de crear la ventana, también la oculta
-        self.root = Toplevel()
-        self.root.withdraw()
-        self.root.resizable(0,0)
-
-        # Al cerrar la ventana, esta sólo se ocultará.
-        # Esto evita crearla cada vez que se la necesita.
-        self.root.protocol("WM_DELETE_WINDOW", self.root.withdraw)
+        Form.__init__(self)
 
         self.id_register = None
 
@@ -179,15 +328,25 @@ class FormCurso(Curso, Form):
         lbl_date_start.grid(row=3, column=0, columnspan=15)
 
         date_start = StringVar()
-        e_date_start = Entry(self.fieldsFrame, textvariable=date_start, width=40)
-        e_date_start.grid(row=4, column=0, columnspan=40, pady=(0,15))
+        e_date_start = Entry(self.fieldsFrame, textvariable=date_start, width=30)
+        e_date_start.grid(row=4, column=0, columnspan=30, pady=(0,15))
+        e_date_start.config(state="readonly")
+
+        btn_start = Button(self.fieldsFrame, text="...", width=8,
+                           command=lambda: date_start.set(DatePicker(self.fieldsFrame).selection()))
+        btn_start.grid(row=4, column=30, columnspan=8, padx=(3,0), pady=(0,15))
 
         lbl_date_end = Label(self.fieldsFrame, text="Fecha de fin: ", width=15)
         lbl_date_end.grid(row=5, column=0, columnspan=15)
 
         date_end = StringVar()
-        e_date_end = Entry(self.fieldsFrame, textvariable=date_end, width=40)
-        e_date_end.grid(row=6, column=0, columnspan=40, pady=(0,15))
+        e_date_end = Entry(self.fieldsFrame, textvariable=date_end, width=30)
+        e_date_end.grid(row=6, column=0, columnspan=30, pady=(0,15))
+        e_date_end.config(state="readonly")
+
+        btn_end = Button(self.fieldsFrame, text="...", width=8,
+                           command=lambda: date_end.set(DatePicker(self.fieldsFrame).selection()))
+        btn_end.grid(row=6, column=30, columnspan=8, padx=(3,0), pady=(0,15))
 
         lbl_workload = Label(self.fieldsFrame, text="Carga horaria: ", width=15)
         lbl_workload.grid(row=7, column=0, columnspan=15)
@@ -203,8 +362,8 @@ class FormCurso(Curso, Form):
         e_place = Entry(self.fieldsFrame, textvariable=place, width=40)
         e_place.grid(row=10, column=0, columnspan=40, pady=(0,15))
 
-        Form.__init__(self, {"nombre":name, "fecha_inicio":date_start, "fecha_fin":date_end,
-                             "carga_horaria":workload, "lugar_dictado":place})
+        super().set_fields({"nombre":name, "fecha_inicio":date_start, "fecha_fin":date_end,
+                            "carga_horaria":workload, "lugar_dictado":place})
 
         name.trace("w", lambda *args: self.validate_str(name, *args))
         date_start.trace("w", lambda *args: self.validate_date(date_start, *args))
@@ -212,16 +371,13 @@ class FormCurso(Curso, Form):
         workload.trace("w", lambda *args: self.validate_int(workload, *args))
         place.trace("w", lambda *args: self.validate_place(place, *args))
 
-    def hide(self):
-        # Se oculta la ventana
-        self.root.withdraw()
 
 class FormCreateCurso(FormCurso):
 
     def __init__(self):
         FormCurso.__init__(self)
 
-        self.root.title("Crear curso")
+        super().set_title("Crear curso")
         
         lbl_newStudent = Label(self.fieldsFrame, text="Formulario de registro")
         lbl_newStudent.grid(row=0, column=0, columnspan=18, pady=(5,10))
@@ -234,8 +390,7 @@ class FormCreateCurso(FormCurso):
         # Se limpian los campos
         self.clean_fields()
 
-        # Se muestra la ventana
-        self.root.deiconify()
+        super().show()
 
 
 class FormDetailsCurso(FormCurso):
@@ -243,7 +398,7 @@ class FormDetailsCurso(FormCurso):
     def __init__(self):
         FormCurso.__init__(self)
 
-        self.root.title("Detalles del Curso")
+        super().set_title("Detalles del Curso")
 
         btn_modify = Button(self.fieldsFrame, text="Modificar",
                             command=lambda: self.update(self.id_register, self.get_data()))
@@ -262,5 +417,4 @@ class FormDetailsCurso(FormCurso):
         self.clean_fields()
         self.load_data(register)
 
-        # Se muestra la ventana
-        self.root.deiconify()
+        super().show()

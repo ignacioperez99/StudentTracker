@@ -1,3 +1,4 @@
+from tkinter import Toplevel
 # Clase padre de la cual heredan todos los formularios.
 # Permite reutilizar código, si no existiera, cada formulario
 # debería implementar cada uno de estos métodos. Pero de esta
@@ -7,8 +8,31 @@
 
 class Form():
 
-    def __init__(self, fields):
+    def __init__(self):
+        # Al momento de crear la ventana, también la oculta
+        self.root = Toplevel()
+        self.root.withdraw()
+        self.root.resizable(0,0)
+
+        # Al cerrar la ventana, esta sólo se ocultará.
+        # Esto evita crearla cada vez que se la necesita.
+        self.root.protocol("WM_DELETE_WINDOW", self.root.withdraw)
+        
+        self.fields = {}
+    
+    def show(self):
+        # Se muestra la ventana
+        self.root.deiconify()
+
+    def hide(self):
+        # Se oculta la ventana
+        self.root.withdraw()
+
+    def set_fields(self, fields):
         self.fields = fields
+
+    def set_title(self, title):
+        self.root.title(title)
 
     def get_data(self):
         # Retorna un diccionario con la info

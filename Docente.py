@@ -96,16 +96,8 @@ class FormDocente(Docente, Form):
 
     def __init__(self):
         Docente.__init__(self)
-        
-        # Al momento de crear la ventana, también la oculta
-        self.root = Toplevel()
-        self.root.withdraw()
-        self.root.title("Detalles del Docente")
-        self.root.resizable(0,0)
 
-        # Al cerrar la ventana, esta sólo se ocultará.
-        # Esto evita crearla cada vez que se la necesita.
-        self.root.protocol("WM_DELETE_WINDOW", self.root.withdraw)
+        Form.__init__(self)
     
         self.fieldsFrame = Frame(self.root, relief="groove", padding=(15,15))
         self.fieldsFrame.grid(row=0, column=0, padx=10, pady=10)
@@ -152,8 +144,8 @@ class FormDocente(Docente, Form):
         e_title = Entry(self.fieldsFrame, textvariable=title, width=40)
         e_title.grid(row=12, column=0, columnspan=40, pady=(0,15))
 
-        Form.__init__(self, {"dni":dni, "nombre":name, "apellido":surname, 
-                             "email":email, "telefono":phone, "titulo":title})
+        super().set_fields({"dni":dni, "nombre":name, "apellido":surname, 
+                            "email":email, "telefono":phone, "titulo":title})
 
         dni.trace("w",     lambda *args: self.validate_dni(dni, *args))
         name.trace("w",    lambda *args: self.validate_str(name, *args))
@@ -162,14 +154,13 @@ class FormDocente(Docente, Form):
         phone.trace("w",   lambda *args: self.validate_phone(phone, *args))
         title.trace("w",   lambda *args: self.validate_str(title, *args))
 
-    def hide(self):
-        # Se oculta la ventana
-        self.root.withdraw()
 
 class FormDetailsDocente(FormDocente):
     
     def __init__(self):
         FormDocente.__init__(self)
+        
+        super().set_title("Detalles del Docente")
 
         btn_modify = Button(self.fieldsFrame, text="Modificar",
                                 command=lambda: self.update(self.id_register, self.get_data()))
@@ -188,13 +179,14 @@ class FormDetailsDocente(FormDocente):
         self.clean_fields()
         self.load_data(register)
 
-        # Se muestra la ventana
-        self.root.deiconify()
+        super().show()
 
 class FormCreateDocente(FormDocente):
 
     def __init__(self):
         FormDocente.__init__(self)
+
+        super().set_title("Crear docente")
         
         lbl_newTeacher = Label(self.fieldsFrame, text="Formulario de registro")
         lbl_newTeacher.grid(row=0, column=0, columnspan=18, pady=(5,10))
@@ -207,6 +199,5 @@ class FormCreateDocente(FormDocente):
         # Se limpian los campos llamado a la clase padre 'Form'
         self.clean_fields()
 
-        # Se muestra la ventana
-        self.root.deiconify()
+        super().show()
 

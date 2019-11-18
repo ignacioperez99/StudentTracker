@@ -3,22 +3,24 @@ from tkinter.ttk import Frame, Label, Entry, Button, Notebook, Combobox
 from Tabla import Tabla
 from Cursante import Cursante, FormCreateCursante, FormDetailsCursante
 from Docente import Docente, FormCreateDocente, FormDetailsDocente 
-""" from Inscripto import Inscripto, FormInscripto  """
-from Curso import Curso, FormCreateCurso, FormDetailsCurso
+from Curso import Curso, FormCreateCurso, FormDetailsCurso, FormDocentesCurso, FormInscriptos
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import Image
 import sqlite3
 
 
 class MainApplication(Tk):
 
     def __init__(self, *args, **kwargs):
-        # Establece las configuraciones de la ventana principal
+        # Establace las configuraciones de la ventana principal
         self.root = Tk()
         self.root.title("Sistema de Gestión de Alumnos")
         self.root.geometry("1010x600")
         self.root.resizable(0,0)
         self.root.option_add("*tearOff", False)
 
-        self.root.bind("<FocusIn>", self.update_tables)
+        self.root.bind("<FocusIn>", self.update_tablas)
 
         self.create_widgets()
 
@@ -37,133 +39,227 @@ class MainApplication(Tk):
         toolbar.add_cascade(menu=self.menu_ayuda, label="Ayuda")
                  
         self.menu_opciones.add_command(label="Cerrar sesión",
-                                       command=self.update_tables)   """                                     
+                                       command=self.update_tablas)   """                                     
 
 
         tabController = Notebook(self.root)
         tabController.grid(column=0, row=0)
 
-        self.frameInicio = Frame(tabController, padding=(10,10))
-        tabController.add(self.frameInicio, text="Inicio")
+        frameInicio = Frame(tabController, padding=(10,10))
+        tabController.add(frameInicio, text="Inicio")
 
-        self.frameCursantes = Frame(tabController, padding=(10,10))
-        tabController.add(self.frameCursantes, text="Alumnos")
+        frameCursantes = Frame(tabController, padding=(10,10))
+        tabController.add(frameCursantes, text="Alumnos")
 
-        self.frameDocentes = Frame(tabController, padding=(10,10))
-        tabController.add(self.frameDocentes, text="Docentes")
+        frameDocentes = Frame(tabController, padding=(10,10))
+        tabController.add(frameDocentes, text="Docentes")
 
-        self.frameCursos = Frame(tabController, padding=(10,10))
-        tabController.add(self.frameCursos, text="Cursos")
+        frameCursos = Frame(tabController, padding=(10,10))
+        tabController.add(frameCursos, text="Cursos")
 
 
-        self.formCreateCursante = FormCreateCursante()
-        btn_nuevoCursante = Button(self.frameCursantes, text="[+] Nuevo estudiante",
-                                command=self.formCreateCursante.show)
+        formCreateCursante = FormCreateCursante()
+        btn_nuevoCursante = Button(frameCursantes, text="[+] Nuevo estudiante",
+                                command=formCreateCursante.show)
         btn_nuevoCursante.grid(row=0, column=0, columnspan=30, pady=(5,10))
 
-        tableCursantesFrame = Frame(self.frameCursantes, relief="groove", padding=(5,5))
-        tableCursantesFrame.grid(row=1, column=0, columnspan=980)                                
+        tablaCursantesFrame = Frame(frameCursantes, relief="groove", padding=(5,5))
+        tablaCursantesFrame.grid(row=1, column=0, columnspan=980)                                
 
-        self.tableCursantes = Tabla(tableCursantesFrame, FormDetailsCursante(),
-                                   960, 420)
+        self.tablaCursantes = Tabla(tablaCursantesFrame, FormDetailsCursante())
         
 
-        self.formCreateDocente = FormCreateDocente()
-        btn_nuevoDocente = Button(self.frameDocentes, text="[+] Nuevo docente",
-                                command=self.formCreateDocente.show)
+        formCreateDocente = FormCreateDocente()
+        btn_nuevoDocente = Button(frameDocentes, text="[+] Nuevo docente",
+                                command=formCreateDocente.show)
         btn_nuevoDocente.grid(row=0, column=0, columnspan=30, pady=(5,10))
 
-        tableDocentesFrame = Frame(self.frameDocentes, relief="groove", padding=(5,5))
-        tableDocentesFrame.grid(row=1, column=0, columnspan=980)
+        tablaDocentesFrame = Frame(frameDocentes, relief="groove", padding=(5,5))
+        tablaDocentesFrame.grid(row=1, column=0, columnspan=980)
 
-        self.tableDocentes = Tabla(tableDocentesFrame, FormDetailsDocente(),
-                                   980, 420, {"dni":15, "telefono":15, "titulo":30})
+        self.tablaDocentes = Tabla(tablaDocentesFrame, FormDetailsDocente(),
+                                   columns_width={"dni":15, "telefono":15, "titulo":30})
 
 
-        self.formCreateCurso = FormCreateCurso()
-        btn_nuevoCurso = Button(self.frameCursos, text="[+] Nuevo curso",
-                                command=self.formCreateCurso.show)
+        formCreateCurso = FormCreateCurso()
+        btn_nuevoCurso = Button(frameCursos, text="[+] Nuevo curso",
+                                command=formCreateCurso.show)
         btn_nuevoCurso.grid(row=0, column=0, columnspan=30, pady=(5,10))
 
-        tableCursosFrame = Frame(self.frameCursos, relief="groove", padding=(5,5))
-        tableCursosFrame.grid(row=1, column=0, columnspan=970)
+        tablaCursosFrame = Frame(frameCursos, relief="groove", padding=(5,5))
+        tablaCursosFrame.grid(row=1, column=0, columnspan=970)
 
-        self.tableCursos = Tabla(tableCursosFrame, FormDetailsCurso(),
-                                  980, 420, {"nombre":40})
+        self.tablaCursos = Tabla(tablaCursosFrame, FormDetailsCurso(),
+                                 columns_width={"nombre":40})
 
 
-        lbl_curso = Label(self.frameInicio, text="Seleccione el curso:")
+        lbl_curso = Label(frameInicio, text="Seleccione el curso:")
         lbl_curso.grid(row=0, column=0)
 
         self.id_curso = StringVar()
         values = [dict(item)["codigo"] for item in Curso.get_all()["data"]]
-        cb_curso = Combobox(self.frameInicio, textvariable=self.id_curso, width=20,
+        cb_curso = Combobox(frameInicio, textvariable=self.id_curso, width=20,
                                values=values, state="readonly")
         cb_curso.current(0)
         cb_curso.grid(row=1, column=0)
 
 
 
-        frameInscripcion = Frame(self.frameInicio, relief="groove", padding=(10,10))
+        tabFrameCurso = Notebook(frameInicio)
+        tabFrameCurso.grid(row=2, column=0)
 
-        self.tipo = StringVar()
-        cb_tipos = Combobox(frameInscripcion, textvariable=self.tipo, width=20,
+
+        frameInscriptos = Frame(tabFrameCurso, padding=(10,10))
+        tabFrameCurso.add(frameInscriptos, text="Inscriptos")
+
+        frameCurDoc = Frame(tabFrameCurso, padding=(10,10))
+        tabFrameCurso.add(frameCurDoc, text="Docentes")
+
+        """ frameAsistencias = Frame(tabFrameCurso, padding=(10,10))
+        tabFrameCurso.add(frameAsistencias, text="Asistencias") """
+
+
+        self.formAddAlumno = FormInscriptos("add")
+        self.formRemoveAlumno = FormInscriptos("remove")
+
+        btn_add_cursante = Button(frameInscriptos, text="[+] Agregar", width=15,
+                               command=lambda: self.formAddAlumno.show(self.id_curso.get()))
+        btn_add_cursante.grid(row=0, column=0, columnspan=10)
+
+        btn_remove_cursante = Button(frameInscriptos, text="[-] Eliminar", width=15,
+                               command=lambda: self.formRemoveAlumno.show(self.id_curso.get()))
+        btn_remove_cursante.grid(row=0, column=10, columnspan=10, padx=5)
+
+        frameTablaInscriptos = Frame(frameInscriptos, padding=(3,0))
+        self.tablaInscriptos = Tabla(frameTablaInscriptos, self.formRemoveAlumno)
+        frameTablaInscriptos.grid(row=1, column=0, columnspan=100, pady=10) 
+
+        data = {"nombre": "Kevin Edgardo",
+                "apellido": "Juarez Desch",
+                "nombre_curso": "Introducción a nuevas tecnologías"}
+
+        btn_certificate = Button(frameInscriptos, text="Generar certificados", width=25,
+                               command=lambda: self.generate_certificate(data))
+        btn_certificate.grid(row=2, column=0, columnspan=15) 
+
+
+        self.formAddDocente = FormDocentesCurso("add")
+        self.formRemoveDocente = FormDocentesCurso("remove")
+
+        btn_add_doc = Button(frameCurDoc, text="[+] Agregar", width=15,
+                               command=lambda: self.formAddDocente.show(self.id_curso.get()))
+        btn_add_doc.grid(row=0, column=0, columnspan=10)
+
+        btn_remove_doc = Button(frameCurDoc, text="[-] Eliminar", width=15,
+                               command=lambda: self.formRemoveDocente.show(self.id_curso.get()))
+        btn_remove_doc.grid(row=0, column=10, columnspan=10, padx=5) 
+
+        frameTablaDocentesMiembro = Frame(frameCurDoc, padding=(3,0))
+        self.tablaDocentesMiembro = Tabla(frameTablaDocentesMiembro, self.formRemoveDocente)
+        frameTablaDocentesMiembro.grid(row=1, column=0, columnspan=100, pady=10)
+
+
+        """ self.formAddAsistencia = FormAsistencias("add")
+        self.formModifyAsistencia = FormAsistencias("modify")
+
+        btn_add_doc = Button(frameAsistencias, text="[+] Agregar", width=15,
+                               command=lambda: self.formAddAsistencia.show(self.id_curso.get()))
+        btn_add_doc.grid(row=0, column=0, columnspan=10)
+
+        btn_remove_doc = Button(frameAsistencias, text="[-] Modificar", width=15,
+                               command=lambda: self.formModifyAsistencia.show(self.id_curso.get()))
+        btn_remove_doc.grid(row=0, column=10, columnspan=10, padx=5) 
+
+        btn_generate_diploma = Button(frameAsistencias, text="Generar certificado", width=20,
+                                      command=lambda: print("alto sertific sacaste loko"))
+        btn_generate_diploma.grid(row=0, column=20, columnspan=15)
+
+        frameTablaAsistencias = Frame(frameAsistencias, padding=(3,0))
+        self.tablaAsistencias = Tabla(frameTablaAsistencias, self.formModifyAsistencia)
+        frameTablaAsistencias.grid(row=1, column=0, columnspan=100, pady=10) """
+
+        """ self.tipo = StringVar()
+        cb_tipos = Combobox(frameInscriptos, textvariable=self.tipo, width=20,
                             values=("Alumnos", "Docentes"))
         cb_tipos.current(1)
         cb_tipos.config(state="readonly")
-        cb_tipos.grid(row=0, column=10, columnspan=20, pady=(0,15))
+        cb_tipos.grid(row=0, column=10, columnspan=20, pady=(0,15)) """
 
-        lbl_nameCurso = (frameInscripcion)
+        """ lbl_nameCurso = (frameInscriptos)
         lbl_nameCurso.grid(row=0, column=0)
 
-        self.listaMiembros = Listbox(frameInscripcion, height=25, width=40)
+        self.listaMiembros = Listbox(frameInscriptos, height=25, width=40)
         for row in dict(Curso.get_cursantes(self.id_curso.get())):
             self.listaMiembros.insert("end", list(row))
         self.listaMiembros.grid(row=1, column=0)
 
-
-        self.listaPersonas = Listbox(frameInscripcion, selectmode="extended", height=25, width=40)
-        data = Curso.get_no_miembros(self.id_curso.get())
-        data = (data["cursantes"] if self.tipo.get()=="Alumnos" else data["docentes"])
-        for row in data:
-            self.listaPersonas.insert("end", row)
-        self.listaPersonas.grid(row=1, column=15)
-
-        btn_inscribir = Button(frameInscripcion, text="Inscribir\n   <---", width=10,
+        btn_inscribir = Button(frameInscriptos, text="Inscribir\n   <---", width=10,
                                command=lambda: print(self.listaPersonas.selection_get()))
         btn_inscribir.grid(row=1, column=10, padx=10, pady=(0,100))
 
-        btn_eliminar = Button(frameInscripcion, text="Dar de baja\n       --->", width=10,
+        btn_eliminar = Button(frameInscriptos, text="Dar de baja\n       --->", width=10,
                                command=lambda: print(self.listaPersonas.selection_get()))
-        btn_eliminar.grid(row=1, column=10, padx=10)
+        btn_eliminar.grid(row=1, column=10, padx=10) """
 
 
-        frameAsistencias = Frame(self.frameInicio, relief="groove", padding=(10,10))
+        """ frameInscriptos = Frame(frameInicio, relief="groove", padding=(10,10))
 
-        lbl_asist = Label(frameAsistencias, text="Ingrese una fecha:")
+        lbl_asist = Label(frameInscriptos, text="Ingrese una fecha:")
         lbl_asist.grid(row=0, column=0)
 
-        """ self.fecha = StringVar()
-        e_fecha = Entry(frameAsistencias, textvariable=self.fecha)
+        self.fecha = StringVar()
+        e_fecha = Entry(frameInscriptos, textvariable=self.fecha)
         e_fecha.grid(row=1, column=0, pady=10)
 
-        self.listaInscriptos = Listbox(frameAsistencias, height=21, width=40)
+        self.listaInscriptos = Listbox(frameInscriptos, height=21, width=40)
         for row in dict(Curso.get_cursantes(self.id_curso.get())):
             self.listaInscriptos.insert("end", list(row))
         self.listaInscriptos.grid(row=2, column=0)
 
-        btn_asist = Button(frameAsistencias, text="Cargar asistencia", width=15,
+        btn_asist = Button(frameInscriptos, text="Cargar asistencia", width=15,
                                command=lambda: print(self.listaInscriptos.selection_get()))
-        btn_asist.grid(row=3, column=0, pady=(10,5))
+        btn_asist.grid(row=3, column=0, pady=(10,5)) """
 
-        frameAsistencias.grid(row=2, column=1, pady=(10,0)) """
+        """ frameInscriptos.grid(row=2, column=1, pady=(10,0)) """
         
-        frameInscripcion.grid(row=2, column=0, padx=40, pady=(10,0))
 
-    def update_tables(self, *args):
-        self.tableCursos.check_update()
-        self.tableCursantes.check_update()
-        self.tableDocentes.check_update()
+    def update_tablas(self, *args):
+        self.tablaCursos.check_update()
+        self.tablaCursantes.check_update()
+        self.tablaDocentes.check_update()
+
+    def generate_certificate(self, data):
+        name = data["nombre"]
+        surname = data["apellido"]
+        course_name = data["nombre_curso"]
+        pdf_name = f"{course_name}_{surname}_{name}.pdf"
+        
+        c = canvas.Canvas(pdf_name, pagesize=landscape(letter))
+
+        logo = "logo_utn.png"
+        c.drawImage(logo, 230, 400, width=None, height=None)
+
+        # Título
+        c.setFont("Helvetica", 48, leading=None)
+        c.drawCentredString(390, 300, "Certificado de finalización")
+        c.setFont("Helvetica", 24, leading=None)
+        c.drawCentredString(390, 250, "Este certificado se presenta a:")
+
+        # Nombre completo
+        c.setFont("Helvetica", 34, leading=None)
+        c.drawCentredString(390, 195, f"{name} {surname}")
+
+        # Por haber completado
+        c.setFont("Helvetica", 24, leading=None)
+        c.drawCentredString(390, 150, "por completar el siguiente curso:")
+
+        # Nombre del curso
+        c.setFont("Helvetica", 20, leading=None)
+        c.drawCentredString(390, 110, course_name)
+
+        c.showPage()
+
+        c.save()
 
 class WinLogin(Tk):
 
@@ -173,7 +269,7 @@ class WinLogin(Tk):
 
         self.accepted = False
 
-        # Establece las configuraciones de la ventana de logueo
+        # Establace las configuraciones de la ventana de logueo
         self.root = Tk()
         self.root.title("Inicio de sesión")
         self.root.resizable(0,0)
@@ -219,9 +315,10 @@ if __name__ == "__main__":
     except Exception as e:
         mb.showerror("Error de base de datos", e)
     
-    Curso.connection = connection
+    Tabla.connection    = connection
+    Curso.connection    = connection
     Cursante.connection = connection
-    Docente.connection = connection
+    Docente.connection  = connection
 
     """ win_login = WinLogin()
     

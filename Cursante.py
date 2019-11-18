@@ -96,14 +96,7 @@ class FormCursante(Cursante, Form):
     def __init__(self):
         Cursante.__init__(self)
 
-        # Al momento de crear la ventana, también la oculta
-        self.root = Toplevel()
-        self.root.withdraw()
-        self.root.resizable(0,0)
-
-        # Al cerrar la ventana, esta sólo se ocultará.
-        # Esto evita crearla cada vez que se la necesita.
-        self.root.protocol("WM_DELETE_WINDOW", self.root.withdraw)
+        Form.__init__(self)
 
         self.id_register = None
 
@@ -154,8 +147,8 @@ class FormCursante(Cursante, Form):
         e_institute.current(0)
         e_institute.grid(row=12, column=0, columnspan=40, pady=(0,15))
 
-        Form.__init__(self, {"dni":dni, "nombre":name, "apellido":surname,
-                             "email":email, "telefono":phone, "institucion":institute})
+        super().set_fields({"dni":dni, "nombre":name, "apellido":surname,
+                            "email":email, "telefono":phone, "institucion":institute})
 
         dni.trace("w", lambda *args: self.validate_dni(dni, *args))
         name.trace("w", lambda *args: self.validate_str(name, *args))
@@ -163,16 +156,13 @@ class FormCursante(Cursante, Form):
         email.trace("w", lambda *args: self.validate_email(email, *args))
         phone.trace("w", lambda *args: self.validate_phone(phone, *args))
 
-    def hide(self):
-        # Se oculta la ventana
-        self.root.withdraw()
 
 class FormDetailsCursante(FormCursante):
     
     def __init__(self):
         FormCursante.__init__(self)
 
-        self.root.title("Detalles del alumno")
+        super().set_title("Detalles del alumno")
 
         btn_modify = Button(self.fieldsFrame, text="Modificar",
                                 command=lambda: self.update(self.id_register, self.get_data()))
@@ -191,8 +181,7 @@ class FormDetailsCursante(FormCursante):
         self.clean_fields()
         self.load_data(register)
 
-        # Se muestra la ventana
-        self.root.deiconify()
+        super().show()
 
 
 class FormCreateCursante(FormCursante):
@@ -200,7 +189,7 @@ class FormCreateCursante(FormCursante):
     def __init__(self):
         FormCursante.__init__(self)
 
-        self.root.title("Crear alumno")
+        super().set_title("Crear alumno")
         
         lbl_newCursante = Label(self.fieldsFrame, text="Formulario de registro")
         lbl_newCursante.grid(row=0, column=0, columnspan=18, pady=(5,10))
@@ -213,5 +202,4 @@ class FormCreateCursante(FormCursante):
         # Se limpian los campos llamado a la clase padre 'Form'
         self.clean_fields()
 
-        # Se muestra la ventana
-        self.root.deiconify()
+        super().show()
