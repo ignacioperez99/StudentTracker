@@ -3,7 +3,7 @@ from tkinter.ttk import Frame, Label, Entry, Button, Notebook, Combobox
 from Tabla import Tabla
 from Cursante import Cursante, FormCreateCursante, FormDetailsCursante
 from Docente import Docente, FormCreateDocente, FormDetailsDocente 
-from Curso import Curso, FormCreateCurso, FormDetailsCurso, FormDocentesCurso, FormInscriptos
+from Curso import Curso, FormCreateCurso, FormDetailsCurso, FormDocentesCurso, FormInscriptos, FormAsistencias
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import Image
@@ -16,7 +16,7 @@ class MainApplication(Tk):
         # Establace las configuraciones de la ventana principal
         self.root = Tk()
         self.root.title("Sistema de Gestión de Alumnos")
-        self.root.geometry("1010x600")
+        self.root.geometry("1010x585")
         self.root.resizable(0,0)
         self.root.option_add("*tearOff", False)
 
@@ -112,27 +112,40 @@ class MainApplication(Tk):
         frameInscriptos = Frame(tabFrameCurso, padding=(10,10))
         tabFrameCurso.add(frameInscriptos, text="Inscriptos")
 
-        frameCurDoc = Frame(tabFrameCurso, padding=(10,10))
-        tabFrameCurso.add(frameCurDoc, text="Docentes")
-
         """ frameAsistencias = Frame(tabFrameCurso, padding=(10,10))
         tabFrameCurso.add(frameAsistencias, text="Asistencias") """
 
+        frameCurDoc = Frame(tabFrameCurso, padding=(10,10))
+        tabFrameCurso.add(frameCurDoc, text="Docentes")
+
 
         self.formAddAlumno = FormInscriptos("add")
+        self.formAddAlumno.id_curso = self.id_curso.get()
         self.formRemoveAlumno = FormInscriptos("remove")
+        self.formRemoveAlumno.id_curso = self.id_curso.get()
 
         btn_add_cursante = Button(frameInscriptos, text="[+] Agregar", width=15,
                                command=lambda: self.formAddAlumno.show(self.id_curso.get()))
-        btn_add_cursante.grid(row=0, column=0, columnspan=10)
+        btn_add_cursante.grid(row=0, column=0, columnspan=15)
 
-        btn_remove_cursante = Button(frameInscriptos, text="[-] Eliminar", width=15,
+        btn_remove_cursante = Button(frameInscriptos, text="[-] Remover", width=15,
                                command=lambda: self.formRemoveAlumno.show(self.id_curso.get()))
-        btn_remove_cursante.grid(row=0, column=10, columnspan=10, padx=5)
+        btn_remove_cursante.grid(row=0, column=16, columnspan=15)
 
-        frameTablaInscriptos = Frame(frameInscriptos, padding=(3,0))
-        self.tablaInscriptos = Tabla(frameTablaInscriptos, self.formRemoveAlumno)
-        frameTablaInscriptos.grid(row=1, column=0, columnspan=100, pady=10) 
+        frameTablaInscriptos = Frame(frameInscriptos, relief="groove", padding=(5,5))
+        self.tablaInscriptos = Tabla(frameTablaInscriptos, self.formRemoveAlumno,
+                                     height=400)
+        frameTablaInscriptos.grid(row=1, column=0, columnspan=150, pady=10) 
+
+        """ self.listaInscriptos = Listbox(frameInscriptos, height=21, width=40)
+        for row in dict(Curso.get_cursantes(self.id_curso.get())):
+            self.listaInscriptos.insert("end", list(row))
+        self.listaInscriptos.grid(row=1, column=100) """
+
+        formAsistencias = FormAsistencias()
+        btn_asistencia = Button(frameInscriptos, text="Cargar asistencia", width=25,
+                                command=lambda: formAsistencias.show(self.id_curso.get()))
+        btn_asistencia.grid(row=0, column=100, columnspan=25)
 
         data = {"nombre": "Kevin Edgardo",
                 "apellido": "Juarez Desch",
@@ -140,7 +153,7 @@ class MainApplication(Tk):
 
         btn_certificate = Button(frameInscriptos, text="Generar certificados", width=25,
                                command=lambda: self.generate_certificate(data))
-        btn_certificate.grid(row=2, column=0, columnspan=15) 
+        btn_certificate.grid(row=0, column=126, columnspan=25) 
 
 
         self.formAddDocente = FormDocentesCurso("add")
@@ -148,15 +161,16 @@ class MainApplication(Tk):
 
         btn_add_doc = Button(frameCurDoc, text="[+] Agregar", width=15,
                                command=lambda: self.formAddDocente.show(self.id_curso.get()))
-        btn_add_doc.grid(row=0, column=0, columnspan=10)
+        btn_add_doc.grid(row=0, column=0, columnspan=15)
 
-        btn_remove_doc = Button(frameCurDoc, text="[-] Eliminar", width=15,
+        btn_remove_doc = Button(frameCurDoc, text="[-] Remover", width=15,
                                command=lambda: self.formRemoveDocente.show(self.id_curso.get()))
-        btn_remove_doc.grid(row=0, column=10, columnspan=10, padx=5) 
+        btn_remove_doc.grid(row=0, column=10, columnspan=15) 
 
-        frameTablaDocentesMiembro = Frame(frameCurDoc, padding=(3,0))
-        self.tablaDocentesMiembro = Tabla(frameTablaDocentesMiembro, self.formRemoveDocente)
-        frameTablaDocentesMiembro.grid(row=1, column=0, columnspan=100, pady=10)
+        frameTablaDocentesMiembro = Frame(frameCurDoc, relief="groove", padding=(5,5))
+        self.tablaDocentesMiembro = Tabla(frameTablaDocentesMiembro, self.formRemoveDocente,
+                                          height=400)
+        frameTablaDocentesMiembro.grid(row=1, column=0, columnspan=960, pady=10)
 
 
         """ self.formAddAsistencia = FormAsistencias("add")
@@ -227,6 +241,8 @@ class MainApplication(Tk):
         self.tablaCursos.check_update()
         self.tablaCursantes.check_update()
         self.tablaDocentes.check_update()
+        self.tablaDocentesMiembro.update_table()
+        self.tablaInscriptos.update_table()
 
     def generate_certificate(self, data):
         name = data["nombre"]

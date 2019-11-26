@@ -9,7 +9,6 @@ class Curso:
     connection = None
     modified = False
 
-    @classmethod
     def create(self, data):
         cur = Curso.connection.cursor()
         sql = """INSERT INTO `Curso` VALUES 
@@ -24,7 +23,6 @@ class Curso:
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e)
 
-    @classmethod
     def delete(self, id_register):
         if mb.askyesnocancel("Confimación", "Está seguro que desea eliminar \nlos datos del curso?"):
             cur = Curso.connection.cursor()
@@ -40,7 +38,6 @@ class Curso:
             except Exception as e:
                 mb.showwarning("Ha ocurrido un problema", e)
 
-    @classmethod
     def update(self, id_register, data):
         if mb.askyesnocancel("Confimación", "Está seguro que desea modificar \nlos datos del curso?"):
             cur = Curso.connection.cursor()
@@ -59,6 +56,33 @@ class Curso:
             except Exception as e:
                 mb.showwarning("Ha ocurrido un problema", e)
 
+    def inscribe(self, data):
+        cur = Curso.connection.cursor()
+        sql = """INSERT INTO `Inscripto` VALUES 
+                  (NULL, NULL, NULL, ?, ?, ?)"""
+
+        try:
+            cur.execute(sql, data)
+            Curso.connection.commit()
+            self.need_update()
+            """ mb.showinfo("Información", "Se incribió correctamente al alumno!") """
+
+        except Exception as e:
+            mb.showwarning("Ha ocurrido un problema", e)
+
+    def uninscribe(self):
+        cur = Curso.connection.cursor()
+        sql = """DELETE FROM `Inscripto`
+                 WHERE codigo = ?"""
+
+        try:
+            cur.execute(sql, data)
+            Curso.connection.commit()
+            self.need_update()
+
+        except Exception as e:
+            mb.showwarning("Ha ocurrido un problema", e)
+
     @classmethod
     def get_all(self):
         cur = Curso.connection.cursor()
@@ -66,7 +90,8 @@ class Curso:
 
         try:
             cur.execute(sql)
-            return {"names": [ desc[0] for desc in cur.description], "data":cur.fetchall()}
+            return {"names": [ desc[0] for desc in cur.description], 
+                    "data":  cur.fetchall()}
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e)        
 
@@ -86,7 +111,7 @@ class Curso:
     def get_miembros(self, id_curso):
         cur = Curso.connection.cursor()
         sql_cursantes = """SELECT C.codigo, C.nombre, C.apellido 
-                           FROM `Inscripto` as I, `Cursante` as C
+                           FROM `Inscripto` as I INNER JOIN `Cursante` as C ON I.cursante=C.codigo
                            WHERE I.curso = ?"""
         sql_docentes = """SELECT D.codigo, D.nombre, D.apellido 
                           FROM `Docente` as D, `Curso` as C, `DocenteCurso` as DC
@@ -95,11 +120,11 @@ class Curso:
         try:
             cursantes= cur.execute(sql_cursantes, (id_curso,)).fetchall()
             docentes= cur.execute(sql_docentes, (id_curso,)).fetchall()
-
+            
             return {"cursantes": {"names": [ desc[0] for desc in cur.description], 
-                                  "data":  (list(row) for row in cursantes)}, 
+                                  "data":  cursantes}, 
                     "docentes":  {"names": [ desc[0] for desc in cur.description], 
-                                  "data":(list(row) for row in docentes)}}
+                                  "data":  docentes}}
 
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e) 
@@ -127,9 +152,9 @@ class Curso:
             docentes= cur.execute(sql_docentes, (id_curso,)).fetchall()
             
             return {"cursantes":{"names": [ desc[0] for desc in cur.description], 
-                                  "data": (list(row) for row in cursantes)}, 
+                                 "data":  cursantes}, 
                     "docentes": {"names": [ desc[0] for desc in cur.description], 
-                                 "data": (list(row) for row in docentes)}}
+                                 "data":  docentes}}
 
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e) 
@@ -147,6 +172,9 @@ class Curso:
         Curso.modified = False
 
 
+
+
+
 class FormInscriptos(Curso, Form):
 
     def __init__(self, form_type):
@@ -159,19 +187,52 @@ class FormInscriptos(Curso, Form):
         fieldsFrame = Frame(self.root, padding=10)
         fieldsFrame.grid(row=0, column=0, padx=10, pady=10)
 
-        self.listaPersonas = Listbox(fieldsFrame, selectmode="extended", height=25, width=40)
-        self.listaPersonas.grid(row=0, column=0, pady=(0,10))
+        lbl_alumnos = Label(fieldsFrame, width=30)
+        lbl_alumnos.grid(row=2, column=0, columnspan=30)
 
-        btn_aceptar = Button(fieldsFrame, text="Aceptar")
-        btn_aceptar.grid(row=1, column=0)
+        self.listaPersonas = Listbox(fieldsFrame, selectmode="extended", height=25, width=40)
+        self.listaPersonas.grid(row=3, column=0, columnspan=40, pady=(5,10))
+
+        btn_aceptar = Button(fieldsFrame, text="Aceptar", width=16)
+        btn_aceptar.grid(row=4, column=0, columnspan=16)
+        
+        btn_cancelar = Button(fieldsFrame, text="Cancelar", width=16,
+                              command=self.hide)
+        btn_cancelar.grid(row=4, column=26, columnspan=16)
 
         if form_type == "add":
             self.set_title("Inscribir alumnos")
-            btn_aceptar.config(command=lambda: print("hola"))
+            lbl_alumnos.config(text="Seleccione los alumnos:")
+
+            lbl_date = Label(fieldsFrame, text="Seleccione la fecha:", width=20)
+            lbl_date.grid(row=0, column=0, columnspan=20)
+
+            self.date = StringVar()
+            e_date = Entry(fieldsFrame, textvariable=self.date, width=30)
+            e_date.grid(row=1, column=0, columnspan=30, pady=(0,10))
+            e_date.config(state="readonly")
+
+            btn_date = Button(fieldsFrame, text="...", width=8,
+                            command=lambda: self.date.set(DatePicker(fieldsFrame).selection()))
+            btn_date.grid(row=1, column=32, columnspan=8, pady=(0,10))
+
+            btn_aceptar.config(command=lambda: self.inscribe())
 
         elif form_type == "remove":
-            self.set_title("Eliminar alumnos")
+            self.set_title("Remover inscriptos")
+            lbl_alumnos.config(text="Seleccione los inscriptos:")
             btn_aceptar.config(command=lambda: print("chau"))
+
+    def inscribe(self):
+        fecha = self.date.get()
+        curso = self.id_curso
+        alumnos = [self.listaPersonas.get(index) for index in self.listaPersonas.curselection()]
+        
+        for alumno in alumnos:
+            super().inscribe((fecha, alumno[0], curso))
+            """ print(f"Fecha:{fecha}, Alumno:{alumno[0]}, Curso:{curso}") """
+
+        self.hide()
 
     def get_all(self):
         if self.form_type == "add":
@@ -189,7 +250,7 @@ class FormInscriptos(Curso, Form):
         elif self.form_type == "remove":
             data = self.get_miembros(self.id_curso)["cursantes"]["data"]
         
-        for row in data:
+        for row in list(data):
             self.listaPersonas.insert("end", row)
 
         super().show()
@@ -202,45 +263,53 @@ class FormInscriptos(Curso, Form):
 
 class FormAsistencias(Curso, Form):
 
-    def __init__(self, form_type):
+    def __init__(self):
         Curso.__init__(self)
         Form.__init__(self)
 
         self.id_curso = None
-        self.form_type = form_type
+        self.set_title("Asistencias")
 
         fieldsFrame = Frame(self.root, padding=10)
         fieldsFrame.grid(row=0, column=0, padx=10, pady=10)
 
-        self.listaPersonas = Listbox(fieldsFrame, selectmode="extended", height=25, width=40)
-        self.listaPersonas.grid(row=0, column=0, pady=(0,10))
+        lbl_date = Label(fieldsFrame, text="Seleccione la fecha:", width=20)
+        lbl_date.grid(row=0, column=0, columnspan=20)
 
-        btn_aceptar = Button(fieldsFrame, text="Aceptar")
-        btn_aceptar.grid(row=1, column=0)
+        date = StringVar()
+        e_date = Entry(fieldsFrame, textvariable=date, width=30)
+        e_date.grid(row=1, column=0, columnspan=30)
+        e_date.config(state="readonly")
 
-        if form_type == "add":
-            self.set_title("Inscribir alumnos")
-            btn_aceptar.config(command=lambda: print("hola"))
+        btn_date = Button(fieldsFrame, text="...", width=8,
+                           command=lambda: date.set(DatePicker(fieldsFrame).selection()))
+        btn_date.grid(row=1, column=32, columnspan=8)
 
-        elif form_type == "remove":
-            self.set_title("Eliminar alumnos")
-            btn_aceptar.config(command=lambda: print("chau"))
+        lbl_inscriptos = Label(fieldsFrame, text="Seleccione los inscriptos:", width=30)
+        lbl_inscriptos.grid(row=2, column=0, columnspan=30, pady=(10,5))
+
+        self.listaPersonas = Listbox(fieldsFrame, highlightthickness=0, selectmode="extended", 
+                                     height=25, width=40)
+        self.listaPersonas.grid(row=3, column=0, columnspan=40, pady=(0,10))
+
+        """ self.listbox.insert(0, "Python", "C", "C++", "Java")
+        self.listbox.itemconfigure(0, bg="#00aa00", fg="#fff")
+        self.listbox.itemconfigure(3, bg="#ff0000", fg="#fff") """
+
+        btn_aceptar = Button(fieldsFrame, text="Aceptar", width=16)
+        btn_aceptar.grid(row=4, column=0, columnspan=16)
+        
+        btn_cancelar = Button(fieldsFrame, text="Cancelar", width=16,
+                              command=self.hide)
+        btn_cancelar.grid(row=4, column=26, columnspan=16)
 
     def get_all(self):
-        if self.form_type == "add":
-            return self.get_no_miembros(self.id_curso)["cursantes"]
-
-        elif self.form_type == "remove":
-            return self.get_miembros(self.id_curso)["cursantes"]
+        return self.get_miembros(self.id_curso)["cursantes"]
 
     def show(self, id_curso):
         self.id_curso = id_curso
 
-        if self.form_type == "add":
-            data = self.get_no_miembros(self.id_curso)["cursantes"]["data"]
-
-        elif self.form_type == "remove":
-            data = self.get_miembros(self.id_curso)["cursantes"]["data"]
+        data = self.get_miembros(self.id_curso)["cursantes"]["data"]
         
         for row in data:
             self.listaPersonas.insert("end", row)
@@ -263,13 +332,21 @@ class FormDocentesCurso(Curso, Form):
         self.form_type = form_type
 
         fieldsFrame = Frame(self.root, padding=10)
-        fieldsFrame.grid(row=0, column=0, padx=10, pady=10)
+        fieldsFrame.grid(row=0, column=0, padx=10, pady=(0,10))
 
-        self.listaPersonas = Listbox(fieldsFrame, selectmode="extended", height=25, width=40)
-        self.listaPersonas.grid(row=0, column=0, pady=(0,10))
+        lbl_select = Label(fieldsFrame, text="Seleccione los docentes:", width=26)
+        lbl_select.grid(row=0, column=0, columnspan=26)
 
-        btn_aceptar = Button(fieldsFrame, text="Aceptar")
-        btn_aceptar.grid(row=1, column=0)
+        self.listaPersonas = Listbox(fieldsFrame, highlightthickness=0, selectmode="extended", 
+                                     height=25, width=40)
+        self.listaPersonas.grid(row=1, column=0, columnspan=40, pady=(5,10))
+
+        btn_aceptar = Button(fieldsFrame, text="Aceptar", width=16)
+        btn_aceptar.grid(row=2, column=0, columnspan=16)
+
+        btn_cancelar = Button(fieldsFrame, text="Cancelar", width=16,
+                              command=self.hide)
+        btn_cancelar.grid(row=2, column=24, columnspan=16)
 
         if form_type == "add":
             self.set_title("Agregar docentes")
@@ -295,8 +372,9 @@ class FormDocentesCurso(Curso, Form):
         elif self.form_type == "remove":
             data = self.get_miembros(self.id_curso)["docentes"]["data"]
         
-        for row in data:
-            self.listaPersonas.insert("end", row)
+        for row in data: 
+            iD, name = row[0], f"{row[1]}, {row[2]}".upper()
+            self.listaPersonas.insert("end", "   {:>4d}       {:<40s}".format(iD, name))
 
         super().show()
 

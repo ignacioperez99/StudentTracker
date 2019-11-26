@@ -216,7 +216,8 @@ class Calendar(ttk.Frame):
             return None
 
         year, month = self._date.year, self._date.month
-        return self.datetime(year, month, int(self._selection[0]))
+        """ date = self.datetime(year, month, int(self._selection[0])) """
+        return f"{year}-{month}-{int(self._selection[0])}"
 
 
 class DatePicker(Dialog):
@@ -225,8 +226,13 @@ class DatePicker(Dialog):
         Dialog.__init__(self, parent, "Calendario")    
 
     def body(self, master):
+        self.canceled = True
         self.calendar = Calendar(master)
         self.calendar.pack()
 
+    def ok(self):
+        self.canceled = False
+        super().ok()
+
     def selection(self):
-        return self.calendar.selection
+        return (self.calendar.selection if not self.canceled else None)
