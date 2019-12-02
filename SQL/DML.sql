@@ -1,20 +1,20 @@
 -- SQLite
 INSERT INTO `Cursante`(codigo, dni, nombre, apellido, email, telefono, institucion)
-VALUES (NULL, 45879625, 'Agustín',  'González',   NULL, 15678124, 'UNTDF'),
-       (NULL, 45657984, 'María',    'Pérez',      NULL, 15789451, 'UTN'  ),
-       (NULL, 34549851, 'José',     'Rigoni',     NULL, 15354987, 'UNTDF'),
-       (NULL, 46213287, 'Federico', 'Suar',       NULL, 15215497, 'UNTDF'),
-       (NULL, 45689521, 'Micaela',  'Kloster',    NULL, 15487951, 'UTN'  ),
-       (NULL, 45978134, 'Rocío',    'Pereyra',    NULL, 15459781, 'OTRO' ),
-       (NULL, 48791246, 'Hernesto', 'Domínguez',  NULL, 15345874, 'OTRO' ),
-       (NULL, 41345972, 'Sabrina',  'Garay',      NULL, 15459574, 'OTRO' ),
-       (NULL, 43459715, 'Santiago', 'Maciel',     NULL, 15598791, 'UNTDF'),
-       (NULL, 46879121, 'Lorena',   'López',      NULL, 15321654, 'UTN'  ),
-       (NULL, 42879516, 'Raúl',     'Palacios',   NULL, 15657987, 'UTN'  ),
-       (NULL, 43564879, 'Brian',    'Villanueva', NULL, 15135457, 'UTN'  ),
-       (NULL, 44567897, 'Camila',   'Gonzalez',   NULL, 15548975, 'UNTDF'),
-       (NULL, 44621978, 'Gabriel',  'Sanchez',    NULL, 15654987, 'OTRO' ),
-       (NULL, 43549487, 'Iván',     'Álvarez',    NULL, 15645498, 'OTRO' );
+VALUES (NULL, 38738347, 'Agustín',  'González',   NULL, 15678124, 'UNTDF'),
+       (NULL, 43164843, 'María',    'Pérez',      NULL, 15789451, 'UTN'  ),
+       (NULL, 36522250, 'José',     'Rigoni',     NULL, 15354987, 'UNTDF'),
+       (NULL, 42060158, 'Federico', 'Suar',       NULL, 15215497, 'UNTDF'),
+       (NULL, 40775983, 'Micaela',  'Kloster',    NULL, 15487951, 'UTN'  ),
+       (NULL, 43478724, 'Rocío',    'Pereyra',    NULL, 15459781, 'OTRO' ),
+       (NULL, 41422400, 'Hernesto', 'Domínguez',  NULL, 15345874, 'OTRO' ),
+       (NULL, 42030416, 'Sabrina',  'Garay',      NULL, 15459574, 'OTRO' ),
+       (NULL, 41822685, 'Santiago', 'Maciel',     NULL, 15598791, 'UNTDF'),
+       (NULL, 43702214, 'Lorena',   'López',      NULL, 15321654, 'UTN'  ),
+       (NULL, 40217391, 'Raúl',     'Palacios',   NULL, 15657987, 'UTN'  ),
+       (NULL, 40628805, 'Brian',    'Villanueva', NULL, 15135457, 'UTN'  ),
+       (NULL, 37204882, 'Camila',   'Gonzalez',   NULL, 15548975, 'UNTDF'),
+       (NULL, 36057843, 'Gabriel',  'Sanchez',    NULL, 15654987, 'OTRO' ),
+       (NULL, 39672258, 'Iván',     'Álvarez',    NULL, 15645498, 'OTRO' );
 
 
 INSERT INTO `Docente`(codigo, dni, nombre, apellido, email, telefono, titulo)

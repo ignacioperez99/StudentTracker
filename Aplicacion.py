@@ -7,6 +7,8 @@ from Curso import Curso, FormCreateCurso, FormDetailsCurso, FormDocentesCurso, F
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import Image
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import registerFont
 import sqlite3
 
 
@@ -108,21 +110,17 @@ class MainApplication(Tk):
         tabFrameCurso = Notebook(frameInicio)
         tabFrameCurso.grid(row=2, column=0)
 
-
         frameInscriptos = Frame(tabFrameCurso, padding=(10,10))
         tabFrameCurso.add(frameInscriptos, text="Inscriptos")
-
-        """ frameAsistencias = Frame(tabFrameCurso, padding=(10,10))
-        tabFrameCurso.add(frameAsistencias, text="Asistencias") """
 
         frameCurDoc = Frame(tabFrameCurso, padding=(10,10))
         tabFrameCurso.add(frameCurDoc, text="Docentes")
 
 
         self.formAddAlumno = FormInscriptos("add")
-        self.formAddAlumno.id_curso = self.id_curso.get()
         self.formRemoveAlumno = FormInscriptos("remove")
-        self.formRemoveAlumno.id_curso = self.id_curso.get()
+        self.formAsistencias = FormAsistencias()
+        self.formAsistencias.id_curso = self.id_curso.get()
 
         btn_add_cursante = Button(frameInscriptos, text="[+] Agregar", width=15,
                                command=lambda: self.formAddAlumno.show(self.id_curso.get()))
@@ -133,18 +131,12 @@ class MainApplication(Tk):
         btn_remove_cursante.grid(row=0, column=16, columnspan=15)
 
         frameTablaInscriptos = Frame(frameInscriptos, relief="groove", padding=(5,5))
-        self.tablaInscriptos = Tabla(frameTablaInscriptos, self.formRemoveAlumno,
+        self.tablaInscriptos = Tabla(frameTablaInscriptos, self.formAsistencias,
                                      height=400)
         frameTablaInscriptos.grid(row=1, column=0, columnspan=150, pady=10) 
 
-        """ self.listaInscriptos = Listbox(frameInscriptos, height=21, width=40)
-        for row in dict(Curso.get_cursantes(self.id_curso.get())):
-            self.listaInscriptos.insert("end", list(row))
-        self.listaInscriptos.grid(row=1, column=100) """
-
-        formAsistencias = FormAsistencias()
         btn_asistencia = Button(frameInscriptos, text="Cargar asistencia", width=25,
-                                command=lambda: formAsistencias.show(self.id_curso.get()))
+                                command=lambda: self.formAsistencias.show(self.id_curso.get()))
         btn_asistencia.grid(row=0, column=100, columnspan=25)
 
         data = {"nombre": "Kevin Edgardo",
@@ -165,77 +157,12 @@ class MainApplication(Tk):
 
         btn_remove_doc = Button(frameCurDoc, text="[-] Remover", width=15,
                                command=lambda: self.formRemoveDocente.show(self.id_curso.get()))
-        btn_remove_doc.grid(row=0, column=10, columnspan=15) 
+        btn_remove_doc.grid(row=0, column=16, columnspan=15) 
 
         frameTablaDocentesMiembro = Frame(frameCurDoc, relief="groove", padding=(5,5))
         self.tablaDocentesMiembro = Tabla(frameTablaDocentesMiembro, self.formRemoveDocente,
-                                          height=400)
-        frameTablaDocentesMiembro.grid(row=1, column=0, columnspan=960, pady=10)
-
-
-        """ self.formAddAsistencia = FormAsistencias("add")
-        self.formModifyAsistencia = FormAsistencias("modify")
-
-        btn_add_doc = Button(frameAsistencias, text="[+] Agregar", width=15,
-                               command=lambda: self.formAddAsistencia.show(self.id_curso.get()))
-        btn_add_doc.grid(row=0, column=0, columnspan=10)
-
-        btn_remove_doc = Button(frameAsistencias, text="[-] Modificar", width=15,
-                               command=lambda: self.formModifyAsistencia.show(self.id_curso.get()))
-        btn_remove_doc.grid(row=0, column=10, columnspan=10, padx=5) 
-
-        btn_generate_diploma = Button(frameAsistencias, text="Generar certificado", width=20,
-                                      command=lambda: print("alto sertific sacaste loko"))
-        btn_generate_diploma.grid(row=0, column=20, columnspan=15)
-
-        frameTablaAsistencias = Frame(frameAsistencias, padding=(3,0))
-        self.tablaAsistencias = Tabla(frameTablaAsistencias, self.formModifyAsistencia)
-        frameTablaAsistencias.grid(row=1, column=0, columnspan=100, pady=10) """
-
-        """ self.tipo = StringVar()
-        cb_tipos = Combobox(frameInscriptos, textvariable=self.tipo, width=20,
-                            values=("Alumnos", "Docentes"))
-        cb_tipos.current(1)
-        cb_tipos.config(state="readonly")
-        cb_tipos.grid(row=0, column=10, columnspan=20, pady=(0,15)) """
-
-        """ lbl_nameCurso = (frameInscriptos)
-        lbl_nameCurso.grid(row=0, column=0)
-
-        self.listaMiembros = Listbox(frameInscriptos, height=25, width=40)
-        for row in dict(Curso.get_cursantes(self.id_curso.get())):
-            self.listaMiembros.insert("end", list(row))
-        self.listaMiembros.grid(row=1, column=0)
-
-        btn_inscribir = Button(frameInscriptos, text="Inscribir\n   <---", width=10,
-                               command=lambda: print(self.listaPersonas.selection_get()))
-        btn_inscribir.grid(row=1, column=10, padx=10, pady=(0,100))
-
-        btn_eliminar = Button(frameInscriptos, text="Dar de baja\n       --->", width=10,
-                               command=lambda: print(self.listaPersonas.selection_get()))
-        btn_eliminar.grid(row=1, column=10, padx=10) """
-
-
-        """ frameInscriptos = Frame(frameInicio, relief="groove", padding=(10,10))
-
-        lbl_asist = Label(frameInscriptos, text="Ingrese una fecha:")
-        lbl_asist.grid(row=0, column=0)
-
-        self.fecha = StringVar()
-        e_fecha = Entry(frameInscriptos, textvariable=self.fecha)
-        e_fecha.grid(row=1, column=0, pady=10)
-
-        self.listaInscriptos = Listbox(frameInscriptos, height=21, width=40)
-        for row in dict(Curso.get_cursantes(self.id_curso.get())):
-            self.listaInscriptos.insert("end", list(row))
-        self.listaInscriptos.grid(row=2, column=0)
-
-        btn_asist = Button(frameInscriptos, text="Cargar asistencia", width=15,
-                               command=lambda: print(self.listaInscriptos.selection_get()))
-        btn_asist.grid(row=3, column=0, pady=(10,5)) """
-
-        """ frameInscriptos.grid(row=2, column=1, pady=(10,0)) """
-        
+                                          btn=False, height=400)
+        frameTablaDocentesMiembro.grid(row=1, column=0, columnspan=150, pady=10)
 
     def update_tablas(self, *args):
         self.tablaCursos.check_update()
@@ -245,32 +172,35 @@ class MainApplication(Tk):
         self.tablaInscriptos.update_table()
 
     def generate_certificate(self, data):
-        name = data["nombre"]
-        surname = data["apellido"]
-        course_name = data["nombre_curso"]
+        registerFont(TTFont('Calibri', 'calibri.ttf'))
+        registerFont(TTFont('Calibri-Bold', 'calibrib.ttf'))
+
+        name = data["nombre"].upper()
+        """ dni = data["dni"] """
+        surname = data["apellido"].upper()
+        course_name = data["nombre_curso"].upper()
         pdf_name = f"{course_name}_{surname}_{name}.pdf"
         
         c = canvas.Canvas(pdf_name, pagesize=landscape(letter))
 
         logo = "logo_utn.png"
-        c.drawImage(logo, 230, 400, width=None, height=None)
+        c.drawImage(logo, 260, 450, width=250, height=110)
 
         # Título
-        c.setFont("Helvetica", 48, leading=None)
-        c.drawCentredString(390, 300, "Certificado de finalización")
-        c.setFont("Helvetica", 24, leading=None)
-        c.drawCentredString(390, 250, "Este certificado se presenta a:")
-
+        c.setFont("Calibri-Bold", 35)
+        c.drawCentredString(390, 400, "CERTIFICADO DE FINALIZACIÓN")
+        c.setFont("Calibri", 24)
+        c.drawCentredString(390, 350, "Este certificado se presenta a:")
         # Nombre completo
-        c.setFont("Helvetica", 34, leading=None)
-        c.drawCentredString(390, 195, f"{name} {surname}")
+        c.setFont("Calibri-Bold", 30)
+        c.drawCentredString(390, 295, f"{name} {surname}")
 
         # Por haber completado
-        c.setFont("Helvetica", 24, leading=None)
-        c.drawCentredString(390, 150, "por completar el siguiente curso:")
+        c.setFont("Calibri", 24)
+        c.drawCentredString(390, 150, "Por completar el curso:")
 
         # Nombre del curso
-        c.setFont("Helvetica", 20, leading=None)
+        c.setFont("Calibri", 20)
         c.drawCentredString(390, 110, course_name)
 
         c.showPage()
@@ -325,7 +255,7 @@ if __name__ == "__main__":
     connection = None
 
     try:
-        connection = sqlite3.connect("./Database.db")
+        connection = sqlite3.connect("./algo.db")
         connection.row_factory = sqlite3.Row
 
     except Exception as e:

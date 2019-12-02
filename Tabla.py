@@ -14,9 +14,10 @@ class AutoScrollbar(Scrollbar):
 
 class Tabla:
 
-    def __init__(self, root, viewer, width=960, height=420, columns_width=None):
+    def __init__(self, root, viewer, btn=True, width=960, height=420, columns_width=None):
         self.viewer = viewer
         self.columns_width = columns_width
+        self.btn = btn
     
         # Se inicializan ambos scrollbars para el Canvas
         vscrollbar = AutoScrollbar(root)
@@ -86,7 +87,7 @@ class Tabla:
             row = Frame(frame)
 
             for field in dict(item):
-                if field == 'codigo':
+                if self.btn and field == 'codigo':
                     btn_id = Button(row, text="Ver", command= lambda index=item[field]: self.viewer.show(index))
                     btn_id.pack(side="right")
                 
@@ -100,7 +101,10 @@ class Tabla:
                 entry.insert(0, str(item[field]))
                 entry.config(state="readonly")
 
-            row.pack(side="top")
+            if self.btn:
+                row.pack(side="top")
+            else:
+                row.pack(side="top", padx=(0,75))
 
         frame.pack()
 
