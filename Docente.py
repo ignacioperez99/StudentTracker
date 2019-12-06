@@ -9,18 +9,22 @@ class Docente:
     modified = False
 
     def create(self, data):
-        cur = Docente.connection.cursor()
-        sql = """INSERT INTO `Docente` 
-                 VALUES (NULL, ?, ?, ?, ?, ?, ?)"""
+        if data[0] and data[1] and data[2] and data[5]:
+            cur = Docente.connection.cursor()
+            sql = """INSERT INTO `Docente` 
+                    VALUES (NULL, ?, ?, ?, ?, ?, ?)"""
 
-        try:
-            cur.execute(sql, data)
-            Docente.connection.commit()
-            self.need_update()
-            mb.showinfo("Información", "El registro se ha creado con éxito!")
+            try:
+                cur.execute(sql, data)
+                Docente.connection.commit()
+                self.need_update()
+                mb.showinfo("Información", "El registro se ha creado con éxito!")
 
-        except Exception as e:
-            mb.showwarning("Ha ocurrido un problema", e)
+            except Exception as e:
+                mb.showwarning("Ha ocurrido un problema", e)
+        
+        else:
+            mb.showwarning("Advertencia!", "Los campos:\n   DNI, Nombre, Apellido y Título\nson obligatorios.")
 
     def delete(self, id_register):
         if mb.askyesnocancel("Confimación", "Está seguro que desea eliminar \nlos datos del docente?"):
@@ -38,22 +42,26 @@ class Docente:
                 mb.showwarning("Ha ocurrido un problema", e)
 
     def update(self, id_register, data):
-        if mb.askyesnocancel("Confimación", "Está seguro que desea modificar \nlos datos del docente?"):
-            cur = Docente.connection.cursor()
-            data.append(id_register)
+        if data[0] and data[1] and data[2] and data[5]:
+            if mb.askyesnocancel("Confimación", "Está seguro que desea modificar \nlos datos del docente?"):
+                cur = Docente.connection.cursor()
+                data.append(id_register)
 
-            sql = """UPDATE `Docente` 
-                     SET dni = ?, nombre = ?, apellido = ?, email = ?, telefono = ?, titulo = ? 
-                     WHERE codigo = ?"""
+                sql = """UPDATE `Docente` 
+                         SET dni = ?, nombre = ?, apellido = ?, email = ?, telefono = ?, titulo = ? 
+                         WHERE codigo = ?"""
 
-            try:
-                cur.execute(sql, data)
-                Docente.connection.commit()
-                self.need_update()
-                mb.showinfo("Información", "El registro se ha modificado con éxito!")
+                try:
+                    cur.execute(sql, data)
+                    Docente.connection.commit()
+                    self.need_update()
+                    mb.showinfo("Información", "El registro se ha modificado con éxito!")
 
-            except Exception as e:
-                mb.showwarning("Ha ocurrido un problema", e)
+                except Exception as e:
+                    mb.showwarning("Ha ocurrido un problema", e)
+        
+        else:
+            mb.showwarning("Advertencia!", "Los campos:\n   DNI, Nombre, Apellido y Título\nson obligatorios.")
 
     @classmethod
     def get_all(self):
@@ -150,7 +158,6 @@ class FormDocente(Docente, Form):
         dni.trace("w",     lambda *args: self.validate_dni(dni, *args))
         name.trace("w",    lambda *args: self.validate_str(name, *args))
         surname.trace("w", lambda *args: self.validate_str(surname, *args))
-        email.trace("w",   lambda *args: self.validate_email(email, *args))
         phone.trace("w",   lambda *args: self.validate_phone(phone, *args))
         title.trace("w",   lambda *args: self.validate_str(title, *args))
 

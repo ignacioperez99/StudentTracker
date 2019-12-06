@@ -16,7 +16,7 @@ class Form():
 
         # Al cerrar la ventana, esta sólo se ocultará.
         # Esto evita crearla cada vez que se la necesita.
-        self.root.protocol("WM_DELETE_WINDOW", self.root.withdraw)
+        self.root.protocol("WM_DELETE_WINDOW", self.hide)
         
         self.fields = {}
     
@@ -78,13 +78,6 @@ class Form():
         if not value.isdigit():
             var.set("".join(x for x in value if x.isdigit()))
 
-    def validate_date(self, var, *args):
-        pass
-        """ if not len(value)<8:
-            dni.set() """""" 
-        if not value.isdigit():
-            var.set(var.get().f) """
-
     def validate_str(self, var, *args):
         value = var.get()
         
@@ -96,6 +89,3 @@ class Form():
         
         if not value.isalnum():
             var.set("".join(x for x in value if x.isalnum() or x.isspace()))
-
-    def validate_email(self, var, *args):
-        pass

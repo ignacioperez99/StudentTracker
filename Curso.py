@@ -1,5 +1,5 @@
 from tkinter import messagebox as mb, StringVar, Toplevel, Listbox
-from tkinter.ttk import Frame, Label, Entry, Button
+from tkinter.ttk import Frame, Label, Entry, Button, Combobox
 from Form import Form
 from Calendar import DatePicker
 import sqlite3
@@ -15,19 +15,22 @@ class Curso:
         '''
         Crea un nuevo registro.
         '''
-        
-        cur = Curso.connection.cursor()
-        sql = """INSERT INTO `Curso` VALUES 
-                  (NULL, ?, ?, ?, ?, ?)"""
+        if data[0] and data[1] and data[2] and data[3] and data[4] and data[5]:
+            cur = Curso.connection.cursor()
+            sql = """INSERT INTO `Curso` VALUES 
+                    (NULL, ?, ?, ?, ?, ?)"""
 
-        try:
-            cur.execute(sql, data)
-            Curso.connection.commit()
-            self.need_update()
-            mb.showinfo("Información", "El registro se ha creado con éxito!")
+            try:
+                cur.execute(sql, data)
+                Curso.connection.commit()
+                self.need_update()
+                mb.showinfo("Información", "El registro se ha creado con éxito!")
 
-        except Exception as e:
-            mb.showwarning("Ha ocurrido un problema", e)
+            except Exception as e:
+                mb.showwarning("Ha ocurrido un problema", e)
+
+        else:
+            mb.showwarning("Advertencia!", "Todos los campos son obligatorios.")
 
     def delete(self, id_register):
         '''
@@ -53,58 +56,77 @@ class Curso:
         Actualiza la información de un registro en particular.
         '''
         
-        if mb.askyesnocancel("Confimación", "Está seguro que desea modificar \nlos datos del curso?"):
-            cur = Curso.connection.cursor()
-            data.append(id_register)
+        if data[0] and data[1] and data[2] and data[3] and data[4] and data[5]:
+            if mb.askyesnocancel("Confimación", "Está seguro que desea modificar \nlos datos del curso?"):
+                cur = Curso.connection.cursor()
+                data.append(id_register)
 
-            sql = """UPDATE `Curso` 
-                     SET nombre = ?, fecha_inicio = ?, fecha_fin = ?, carga_horaria = ?, lugar_dictado = ?
-                     WHERE codigo = ?"""
+                sql = """UPDATE `Curso` 
+                        SET nombre = ?, fecha_inicio = ?, fecha_fin = ?, carga_horaria = ?, lugar_dictado = ?
+                        WHERE codigo = ?"""
 
-            try:
-                cur.execute(sql, data)
-                Curso.connection.commit()
-                self.need_update()
-                mb.showinfo("Información", "El registro se ha modificado con éxito!")
+                try:
+                    cur.execute(sql, data)
+                    Curso.connection.commit()
+                    self.need_update()
+                    mb.showinfo("Información", "El registro se ha modificado con éxito!")
 
-            except Exception as e:
-                mb.showwarning("Ha ocurrido un problema", e)
+                except Exception as e:
+                    mb.showwarning("Ha ocurrido un problema", e)
+            
+        else:
+            mb.showwarning("Advertencia!", "Todos los campos son obligatorios.")
 
-    def add_cursante(self, data):
+    def add_cursante(self, insc_date, id_register, id_curso):
         '''
         Inscribe un alumno a un curso
         '''
-        
+
         cur = Curso.connection.cursor()
+        dates = self.get_dates(id_curso)
         sql = """INSERT INTO `Inscripto` VALUES 
-                  (NULL, NULL, NULL, ?, ?, ?)"""
+                 (NULL, NULL, NULL, ?, ?, ?)"""
 
         try:
-            cur.execute(sql, data)
+            cur.execute(sql, (insc_date, id_register, id_curso))
+
+            for date in dates:
+                sql_asist = '''INSERT INTO `Asistencia` VALUES
+                                (NULL, ?, ?, (SELECT codigo
+                                                  FROM `Inscripto`
+                                                  WHERE fecha_inscripcion = ? AND 
+                                                        cursante = ? AND 
+                                                        curso = ?), ?)'''
+                cur.execute(sql_asist, (date, False, insc_date, id_register, id_curso, id_curso))
+
             Curso.connection.commit()
             self.need_update()
-            mb.showinfo("Información", "Se incribió correctamente al alumno!")
+            """ mb.showinfo("Información", "Se incribió correctamente al alumno!") """
 
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e)
 
-    def remove_cursante(self, id_register, id_curso):
+    def remove_cursante(self, id_register):
         '''
-        Elimina la incripción de un alumno a un curso
+        Elimina la incripción de un alumno a un curso y a su vez
+        todos los datos vinculados a su asistencia
         '''
-        
-        if mb.askyesnocancel("Confimación", "Está seguro que desea remover \nla incripción del alumno?"):
-            cur = Curso.connection.cursor()
-            sql = """DELETE FROM `Inscripto`
-                     WHERE cursante = ? AND curso = ?"""
 
-            try:
-                cur.execute(sql, (id_register, id_curso))
-                Curso.connection.commit()
-                self.need_update()
+        cur = Curso.connection.cursor()
+        sql = """DELETE FROM `Inscripto`
+                    WHERE codigo = ?"""
 
-            except Exception as e:
-                mb.showwarning("Ha ocurrido un problema", e)
+        sql_asist = """DELETE FROM `Asistencia`
+                        WHERE inscripto = ?"""
+
+        try:
+            cur.execute(sql, (id_register,))
+            cur.execute(sql_asist, (id_register,))
+            Curso.connection.commit()
+            self.need_update()
+
+        except Exception as e:
+            mb.showwarning("Ha ocurrido un problema", e)
 
     def add_docente(self, id_register, id_curso):
         '''
@@ -126,26 +148,41 @@ class Curso:
         '''
         Elimina el vínculo entre un docente y un curso.
         '''
-        
-        if mb.askyesnocancel("Confimación", "Está seguro que desea remover \nal docente del curso?"):
-            cur = Curso.connection.cursor()
-            sql = """DELETE FROM `DocenteCurso`
-                    WHERE docente = ? AND curso = ?"""
 
-            try:
-                cur.execute(sql, (id_register, id_curso))
-                Curso.connection.commit()
-                self.need_update()
+        cur = Curso.connection.cursor()
+        sql = """DELETE FROM `DocenteCurso`
+                WHERE docente = ? AND curso = ?"""
 
-            except Exception as e:
-                mb.showwarning("Ha ocurrido un problema", e)
+        try:
+            cur.execute(sql, (id_register, id_curso))
+            Curso.connection.commit()
+            self.need_update()
+
+        except Exception as e:
+            mb.showwarning("Ha ocurrido un problema", e)
+
+    def update_asistencia(self, date, id_register, id_curso, state):
+        cur = Curso.connection.cursor()
+        sql = '''UPDATE `Asistencia` 
+                 SET asistio = ?
+                 WHERE fecha = ? AND
+                       curso = ? AND
+                       inscripto = ?'''
+
+        try:
+            cur.execute(sql, (state, date, id_curso, id_register))
+            Curso.connection.commit()
+            self.need_update()
+
+        except Exception as e:
+            mb.showwarning("Ha ocurrido un problema", e)
 
     @classmethod
     def get_all(self):
         '''
         Retorna todos los registros existentes.
         '''
-        
+
         cur = Curso.connection.cursor()
         sql = """SELECT * FROM `Curso`"""
 
@@ -161,7 +198,7 @@ class Curso:
         '''
         Retorna un registro en particular.
         '''
-        
+
         cur = Curso.connection.cursor()
         sql = """SELECT * FROM `Curso` WHERE codigo = ?"""
 
@@ -178,23 +215,25 @@ class Curso:
         Retorna un diccionario con los inscriptos y docentes
         que están vinculados con un curso en particular.
         '''
-        
+
         cur = Curso.connection.cursor()
-        sql_cursantes = """SELECT C.codigo, C.nombre, C.apellido 
+        sql_cursantes = """SELECT I.codigo, C.nombre, C.apellido, I.fecha_inscripcion
                            FROM `Inscripto` as I INNER JOIN `Cursante` as C ON I.cursante=C.codigo
                            WHERE I.curso = ?"""
         sql_docentes = """SELECT D.codigo, D.nombre, D.apellido 
-                          FROM `Docente` as D, `Curso` as C, `DocenteCurso` as DC
+                          FROM `Docente` as D INNER JOIN `DocenteCurso` as DC ON DC.docente = D.codigo 
+                                              INNER JOIN `Curso` as C ON DC.curso = C.codigo
                           WHERE DC.curso = ?"""
-
         try:
-            cursantes= cur.execute(sql_cursantes, (id_curso,)).fetchall()
-            docentes= cur.execute(sql_docentes, (id_curso,)).fetchall()
-            
-            return {"cursantes": {"names": [ desc[0] for desc in cur.description], 
-                                  "data":  cursantes}, 
-                    "docentes":  {"names": [ desc[0] for desc in cur.description], 
-                                  "data":  docentes}}
+            c_data = cur.execute(sql_cursantes, (id_curso,)).fetchall()
+            cursantes = {"names": [ desc[0] for desc in cur.description], 
+                         "data":  c_data}
+
+            d_data = cur.execute(sql_docentes, (id_curso,)).fetchall()
+            docentes = {"names": [ desc[0] for desc in cur.description], 
+                        "data":  d_data}
+
+            return {"cursantes": cursantes, "docentes":  docentes}
 
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e) 
@@ -205,17 +244,17 @@ class Curso:
         Retorna los alumnos y docentes que no pertenecen a
         un curso en particular.
         '''
-        
+
         cur = Curso.connection.cursor()
-        sql_cursantes = """SELECT DISTINCT C.codigo, C.nombre, C.apellido 
+        sql_cursantes = """SELECT C.codigo, C.nombre, C.apellido 
                            FROM `Cursante` as C
                            WHERE C.codigo NOT IN (
                                 SELECT I.cursante
                                 FROM `Inscripto` as I
                                 WHERE I.curso = ?
                            )"""
-        sql_docentes = """SELECT DISTINCT D.codigo, D.nombre, D.apellido
-                          FROM `Docente` as D, `Curso` as C
+        sql_docentes = """SELECT D.codigo, D.nombre, D.apellido
+                          FROM `Docente` as D
                           WHERE D.codigo NOT IN (
                                 SELECT DC.docente
                                 FROM `DocenteCurso` as DC
@@ -223,13 +262,15 @@ class Curso:
                           )"""
 
         try:
-            cursantes= cur.execute(sql_cursantes, (id_curso,)).fetchall()
-            docentes= cur.execute(sql_docentes, (id_curso,)).fetchall()
+            c_data= cur.execute(sql_cursantes, (id_curso,)).fetchall()
+            cursantes = {"names": [desc[0] for desc in cur.description], 
+                         "data":  c_data}
             
-            return {"cursantes":{"names": [ desc[0] for desc in cur.description], 
-                                 "data":  cursantes}, 
-                    "docentes": {"names": [ desc[0] for desc in cur.description], 
-                                 "data":  docentes}}
+            d_data= cur.execute(sql_docentes, (id_curso,)).fetchall()
+            docentes = {"names": [desc[0] for desc in cur.description], 
+                        "data":  d_data}
+            
+            return {"cursantes": cursantes, "docentes": docentes}
 
         except Exception as e:
             mb.showwarning("Ha ocurrido un problema", e) 
@@ -237,9 +278,11 @@ class Curso:
     @classmethod
     def get_dates(self, id_curso):
         '''
-        Retorna la cantidad de días entre 
+        Retorna un arreglo con los días 
+        entre la fecha de inicio y la de fin.
         '''
-        
+        # Convierte las fechas string y datetime en
+        # formato date del tipo AAAA/MM/DD
         def parse_date(fecha):
             if type(fecha) == str:
                 fecha = parser.parse(fecha)
@@ -252,12 +295,99 @@ class Curso:
                        WHERE codigo = ?"""
         dates_curso = cur.execute(sql_curso, (id_curso,)).fetchone()
 
-        start = parse_date(dates_curso[0])
-        end = parse_date(dates_curso[1])
-        cant = abs(start-end).days
-        """ days=list(map(parse_date,drrule.rrule(drrule.DAILY, dtstart=start, until=end))) """
-        print(f"start: {start}\nend: {end}\ndays: {cant}")
+        start = parse_date(dates_curso[0]) if dates_curso else None
+        end = parse_date(dates_curso[1]) if dates_curso else None
 
+        return list(map(parse_date,drrule.rrule(drrule.DAILY, dtstart=start, until=end)))
+    
+    @classmethod
+    def get_asistencias(self, id_curso):
+        '''
+        Retorna los alumnos y docentes que no pertenecen a
+        un curso en particular.
+        '''
+
+        dates = self.get_dates(id_curso)
+        sql_dates = ""
+        
+
+        for date in dates:
+            sql_dates = (sql_dates + 
+                         f""", (SELECT CASE 
+                                        WHEN asistio = 1 
+                                        THEN 'Asistió' 
+                                        ELSE '---' 
+                                     END 
+                              FROM Asistencia 
+                              WHERE fecha = '{str(date)}' AND 
+                                    inscripto = I.codigo) as '{str(date)}'""")
+
+        cur = Curso.connection.cursor()
+        sql = f'''SELECT I.codigo || ", " || C.nombre || ", " || C.apellido as Inscripto{sql_dates}
+                  FROM Asistencia as A INNER JOIN Inscripto as I ON A.inscripto = I.codigo
+                                       INNER JOIN Cursante  as C ON I.cursante = C.codigo
+                  WHERE A.curso = ?
+                  GROUP BY A.inscripto, C.nombre, C.apellido'''
+
+        a_data = cur.execute(sql, (id_curso,)).fetchall()
+        
+        return {"names": [desc[0] for desc in cur.description], 
+                "data": a_data}
+
+    @classmethod
+    def get_data_certificados(self, id_curso):
+        cur = Curso.connection.cursor()
+        sql_asist = """SELECT I.codigo, C.dni, C.nombre || ' ' || C.apellido as nombre
+                       FROM Inscripto as I INNER JOIN Cursante as C ON I.cursante = C.codigo
+                       WHERE I.curso = ? AND 
+                             0 NOT IN (SELECT asistio
+                                       FROM Asistencia
+                                       WHERE inscripto = I.codigo AND
+                                             curso = I.curso)"""
+
+        sql_docs = """SELECT D.nombre || ' ' || D.apellido as nombre
+                      FROM Docente as D INNER JOIN DocenteCurso as DC ON DC.docente = D.codigo
+                                        INNER JOIN Curso as C ON DC.curso = C.codigo
+                      WHERE DC.curso = ?"""  
+        
+        sql_cur = """SELECT nombre
+                     FROM Curso
+                     WHERE codigo = ?"""
+
+        dates = sorted(self.get_dates(id_curso))
+        dict_dates = {}
+        for date in dates:
+            dict_dates.setdefault(date.year, {}).setdefault(date.month, []).append(date.day)
+         
+        meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+        
+        str_date = ""
+        for i, year in enumerate(dict_dates.keys()):
+            for j, month in enumerate(dict_dates[year].keys()):
+                for k, day in enumerate(dict_dates[year][month]):
+                    str_date = (str_date + str(day) + (" y " if k == len(dict_dates[year][month])-2 else
+                                                       (", " if k < len(dict_dates[year][month])-1 else "")))
+
+                str_date = (str_date + " de " + meses[int(month)-1] + 
+                            (" y " if j == len(dict_dates[year].keys())-2 else
+                             (", " if j < len(dict_dates[year].keys())-1 else "")))
+
+            str_date = (str_date + " de " + str(year) + (" y " if i == len(dict_dates.keys())-2 else
+                                                         (", " if i < len(dict_dates.keys())-1 else "")))
+
+        asistieron = [dict(item) for item in cur.execute(sql_asist, (id_curso,)).fetchall()]
+        docentes = [dict(item)["nombre"] for item in cur.execute(sql_docs, (id_curso,)).fetchall()]
+        curso = cur.execute(sql_cur, (id_curso,)).fetchone()
+
+        str_docentes = ""
+        for i, docente in enumerate(docentes):
+            str_docentes = (str_docentes + str(docente) + (" y " if i == len(docentes)-2 else
+                                                           (", " if i < len(docentes)-1 else "")))
+
+        return {"asistieron": [dict(item) for item in asistieron],
+                "docentes": str_docentes,
+                "fechas": str_date,
+                "curso": dict(curso)["nombre"]}
 
     @classmethod
     def need_update(self):
@@ -297,7 +427,8 @@ class FormInscriptos(Curso, Form):
         lbl_alumnos = Label(fieldsFrame, width=30)
         lbl_alumnos.grid(row=2, column=0, columnspan=30)
 
-        self.listaPersonas = Listbox(fieldsFrame, selectmode="extended", height=25, width=40)
+        self.listaPersonas = Listbox(fieldsFrame, highlightthickness=0, selectmode="extended", 
+                                     height=25, width=40)
         self.listaPersonas.grid(row=3, column=0, columnspan=40, pady=(5,10))
 
         btn_aceptar = Button(fieldsFrame, text="Aceptar", width=16)
@@ -335,19 +466,31 @@ class FormInscriptos(Curso, Form):
         curso = self.id_curso
         alumnos = [self.listaPersonas.get(index) for index in self.listaPersonas.curselection()]
         
-        for alumno in alumnos:
-            super().add_cursante((fecha, alumno.strip().split()[0], curso))
+        if fecha and alumnos:
+            for alumno in alumnos:
+                super().add_cursante(fecha, alumno.strip().split()[0], curso)
 
-        self.hide()
+            self.hide()
+
+        else:
+            mb.showwarning("Advertencia!", "Por favor, seleccione la fecha y los\nalumnos a inscribir.") 
 
     def remove_cursante(self):
-        curso = self.id_curso
+        '''
+        Elimina a los incriptos seleccionados de un curso.
+        '''
         alumnos = [self.listaPersonas.get(index) for index in self.listaPersonas.curselection()]
 
-        for alumno in alumnos:
-            super().remove_cursante(alumno.strip().split()[0], curso)
+        if alumnos:
+            if mb.askyesnocancel("Confimación", "Está seguro que desea remover \nlos inscriptos seleccionados del curso?"):
 
-        self.hide()
+                for alumno in alumnos:
+                    super().remove_cursante(alumno.strip().split()[0])
+
+                self.hide()
+        
+        else:
+            mb.showwarning("Advertencia!", "Por favor, seleccione los inscriptos a remover.") 
 
     def get_all(self):
         if self.form_type == "add":
@@ -368,7 +511,9 @@ class FormInscriptos(Curso, Form):
         super().show()
 
     def hide(self):
-        self.date.set("")
+        if self.form_type == "add":
+            self.date.set("")
+
         self.listaPersonas.delete(0, 'end')
 
         super().hide()
@@ -389,44 +534,52 @@ class FormAsistencias(Curso, Form):
         lbl_date = Label(fieldsFrame, text="Seleccione la fecha:", width=20)
         lbl_date.grid(row=0, column=0, columnspan=20)
 
-        date = StringVar()
-        e_date = Entry(fieldsFrame, textvariable=date, width=30)
-        e_date.grid(row=1, column=0, columnspan=30)
-        e_date.config(state="readonly")
+        self.date = StringVar()
+        self.cb_date = Combobox(fieldsFrame, textvariable=self.date, width=36,
+                                state="readonly")
+        self.cb_date.grid(row=1, column=0, columnspan=36, pady=(5,10))
 
-        btn_date = Button(fieldsFrame, text="...", width=8,
-                           command=lambda: date.set(DatePicker(fieldsFrame).selection()))
-        btn_date.grid(row=1, column=32, columnspan=8)
-
-        lbl_inscriptos = Label(fieldsFrame, text="Seleccione los inscriptos:", width=30)
-        lbl_inscriptos.grid(row=2, column=0, columnspan=30, pady=(10,5))
+        lbl_inscriptos = Label(fieldsFrame, text="Seleccione los inscriptos que asistieron:", width=40)
+        lbl_inscriptos.grid(row=2, column=0, columnspan=40)
 
         self.listaPersonas = Listbox(fieldsFrame, highlightthickness=0, selectmode="extended", 
                                      height=25, width=40)
-        self.listaPersonas.grid(row=3, column=0, columnspan=40, pady=(0,10))
+        self.listaPersonas.grid(row=3, column=0, columnspan=40, pady=(5,10))
 
-        """ self.listbox.insert(0, "Python", "C", "C++", "Java")
-        self.listbox.itemconfigure(0, bg="#00aa00", fg="#fff")
-        self.listbox.itemconfigure(3, bg="#ff0000", fg="#fff") """
-
-        btn_aceptar = Button(fieldsFrame, text="Aceptar", width=16)
+        btn_aceptar = Button(fieldsFrame, text="Aceptar", width=16,
+                             command=lambda: self.update_asistencia())
         btn_aceptar.grid(row=4, column=0, columnspan=16)
         
         btn_cancelar = Button(fieldsFrame, text="Cancelar", width=16,
                               command=self.hide)
         btn_cancelar.grid(row=4, column=26, columnspan=16)
 
+    def update_asistencia(self):
+        asistieron = self.listaPersonas.curselection()
+        inscriptos = [item.strip().split(" ")[0] for item in self.listaPersonas.get(0, 'end')]
+        date = self.date.get()
+        curso = self.id_curso
+
+        for index, inscripto in enumerate(inscriptos):
+            super().update_asistencia(date, inscripto, curso, (True if index in asistieron else False))
+
+        self.hide()
+
     def get_all(self):
-        return self.get_miembros(self.id_curso)["cursantes"]
+        return self.get_asistencias(self.id_curso)
 
     def show(self, id_curso):
         self.id_curso = id_curso
 
+        values = self.get_dates(self.id_curso)
+        self.cb_date.config(values=values)
+        self.cb_date.current(0)
+
         data = self.get_miembros(self.id_curso)["cursantes"]["data"]
         
-        for row in list(data):
+        for i, row in enumerate(list(data)):
             iD, name = row[0], f"{row[1]}, {row[2]}".upper()
-            self.listaPersonas.insert("end", "   {:>4d}       {:<40s}".format(iD, name))
+            self.listaPersonas.insert(i, "   {:>4d}       {:<40s}".format(iD, name))
 
         super().show()
 
@@ -464,11 +617,31 @@ class FormDocentesCurso(Curso, Form):
 
         if form_type == "add":
             self.set_title("Agregar docentes")
-            btn_aceptar.config(command=lambda: print("hola"))
+            btn_aceptar.config(command=lambda: self.add_docente())
 
         elif form_type == "remove":
             self.set_title("Eliminar docentes")
-            btn_aceptar.config(command=lambda: print("chau"))
+            btn_aceptar.config(command=lambda: self.remove_docente())
+
+    def add_docente(self):
+        curso = self.id_curso
+        docentes = [self.listaPersonas.get(index) for index in self.listaPersonas.curselection()]
+        
+        for docente in docentes:
+            super().add_docente(docente.strip().split()[0], curso)
+
+        self.hide()
+
+    def remove_docente(self):
+        curso = self.id_curso
+        docentes = [self.listaPersonas.get(index) for index in self.listaPersonas.curselection()]
+        
+        if mb.askyesnocancel("Confimación", "Está seguro que desea remover \na los docentes seleccionados del curso?"):
+
+            for docente in docentes:
+                super().remove_docente(docente.strip().split()[0], curso)
+
+        self.hide()
 
     def get_all(self):
         if self.form_type == "add":
@@ -558,8 +731,6 @@ class FormCurso(Curso, Form):
                             "carga_horaria":workload, "lugar_dictado":place})
 
         name.trace("w", lambda *args: self.validate_str(name, *args))
-        date_start.trace("w", lambda *args: self.validate_date(date_start, *args))
-        date_end.trace("w", lambda *args: self.validate_date(date_end, *args))
         workload.trace("w", lambda *args: self.validate_int(workload, *args))
         place.trace("w", lambda *args: self.validate_place(place, *args))
 

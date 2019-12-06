@@ -36,8 +36,6 @@ CREATE TABLE Inscripto (
     curso INTEGER NOT NULL REFERENCES Curso(codigo)
 );
 
-DROP TABLE Inscripto;
-
 CREATE TABLE Asistencia ( 
     codigo INTEGER PRIMARY KEY AUTOINCREMENT,
     fecha DATE NOT NULL,

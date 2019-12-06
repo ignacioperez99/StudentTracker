@@ -1,5 +1,5 @@
 -- SQLite
-INSERT INTO `Cursante`(codigo, dni, nombre, apellido, email, telefono, institucion)
+INSERT INTO Cursante(codigo, dni, nombre, apellido, email, telefono, institucion)
 VALUES (NULL, 38738347, 'Agustín',  'González',   NULL, 15678124, 'UNTDF'),
        (NULL, 43164843, 'María',    'Pérez',      NULL, 15789451, 'UTN'  ),
        (NULL, 36522250, 'José',     'Rigoni',     NULL, 15354987, 'UNTDF'),
@@ -17,7 +17,7 @@ VALUES (NULL, 38738347, 'Agustín',  'González',   NULL, 15678124, 'UNTDF'),
        (NULL, 39672258, 'Iván',     'Álvarez',    NULL, 15645498, 'OTRO' );
 
 
-INSERT INTO `Docente`(codigo, dni, nombre, apellido, email, telefono, titulo)
+INSERT INTO Docente(codigo, dni, nombre, apellido, email, telefono, titulo)
 VALUES (NULL, 32164549, 'Esteban',  'García',    NULL, 15456787, 'Lic. en Economía'),
        (NULL, 21645987, 'Tomás',    'Espíndola', NULL, 15212647, 'Máster en Informática'),
        (NULL, 12315648, 'Elisa',    'Gómez',     NULL, 15216547, 'Lic. en Historia'),
@@ -30,6 +30,11 @@ VALUES (NULL, 32164549, 'Esteban',  'García',    NULL, 15456787, 'Lic. en Econo
        (NULL, 34687954, 'Juana',    'Rizzo',     NULL, 15548754, 'Doctorado en Pediatría');
 
 
-INSERT INTO `Curso`(codigo, nombre, fecha_inicio, fecha_fin, carga_horaria, lugar_dictado)
+INSERT INTO Curso(codigo, nombre, fecha_inicio, fecha_fin, carga_horaria, lugar_dictado)
 VALUES (NULL, 'Taller de Ciberseguridad',         '2019-10-28', '2019-10-31', 5, 'Kuanip 557'),
-       (NULL, 'Taller de Desarrollo Sustentable', '2019-11-05', '2019-10-08', 8, 'San Martín 745'); 
+       (NULL, 'Taller de Desarrollo Sustentable', '2019-12-09', '2019-12-12', 8, 'San Martín 745'); 
+
+
+INSERT INTO Administrador(codigo, dni, nombre, apellido, email, usuario, contrasena) 
+VALUES (NULL, 37261933, "Kevin Edgardo", "Juarez Desch", NULL, "Admin", 1234);
+
