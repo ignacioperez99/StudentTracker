@@ -31,8 +31,18 @@ class Cursante:
             cur = Cursante.connection.cursor()
             sql = """DELETE FROM `Cursante` 
                      WHERE codigo = ?"""
-            
+
+            sql_insc = """DELETE FROM `Inscripto`
+                          WHERE cursante = ?"""
+
+            sql_asist = """DELETE FROM `Asistencia`
+                           WHERE inscripto IN (SELECT codigo
+                                               FROM `Inscripto`
+                                               WHERE cursante = ?)"""
+
             try:
+                cur.execute(sql_asist, (id_register,))
+                cur.execute(sql_insc, (id_register,))
                 cur.execute(sql, (id_register,))
                 Cursante.connection.commit()
                 self.need_update()
@@ -177,7 +187,8 @@ class FormDetailsCursante(FormCursante):
         btn_modify.grid(row=13, column=0, columnspan=20, pady=5)
 
         btn_delete = Button(self.fieldsFrame, text="Eliminar",
-                                command=lambda: self.delete(self.id_register))
+                                command=lambda: (self.delete(self.id_register),
+                                                 self.hide()))
         btn_delete.grid(row=13, column=20, columnspan=20, pady=5)
 
     def show(self, id_register):
@@ -203,7 +214,8 @@ class FormCreateCursante(FormCursante):
         lbl_newCursante.grid(row=0, column=0, columnspan=18, pady=(5,10))
 
         btn_createCursante = Button(self.fieldsFrame, text="Registrar",
-                                        command=lambda: self.create(self.get_data()))
+                                        command=lambda: (self.create(self.get_data()),
+                                                         self.hide()))
         btn_createCursante.grid(row=13, column=0, columnspan=40, pady=5)
 
     def show(self):

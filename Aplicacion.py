@@ -15,6 +15,8 @@ import sqlite3
 
 class MainApplication(Tk):
 
+    first_evaluating = True
+
     def __init__(self, *args, **kwargs):
         '''
         Establace las configuraciones de la ventana principal
@@ -23,11 +25,12 @@ class MainApplication(Tk):
         self.root.title("Sistema de Gestión de Alumnos")
         self.root.geometry("1010x585")
         self.root.resizable(0,0)
-        self.root.option_add("*tearOff", False)
 
         # Ejecuta la función de actualizar las tablas
         # cuando la ventana principal obtiene el foco
         self.root.bind("<FocusIn>", self.update_tablas)
+        
+        self.hay_cursos = False
 
         self.create_widgets()
 
@@ -44,78 +47,85 @@ class MainApplication(Tk):
         tabController = Notebook(self.root)
         tabController.grid(column=0, row=0)
 
-        frameInicio = Frame(tabController, padding=(10,10))
-        tabController.add(frameInicio, text="Inicio")
+        self.frameInicio = Frame(tabController, padding=(10,10))
+        tabController.add(self.frameInicio, text="Inicio")
 
-        frameCursantes = Frame(tabController, padding=(10,10))
-        tabController.add(frameCursantes, text="Alumnos")
+        self.frameCursantes = Frame(tabController, padding=(10,10))
+        tabController.add(self.frameCursantes, text="Alumnos")
 
-        frameDocentes = Frame(tabController, padding=(10,10))
-        tabController.add(frameDocentes, text="Docentes")
+        self.frameDocentes = Frame(tabController, padding=(10,10))
+        tabController.add(self.frameDocentes, text="Docentes")
 
-        frameCursos = Frame(tabController, padding=(10,10))
-        tabController.add(frameCursos, text="Cursos")
+        self.frameCursos = Frame(tabController, padding=(10,10))
+        tabController.add(self.frameCursos, text="Cursos")
 
+        
+        lbl_curso = Label(self.frameInicio, text="Seleccione el curso:", width=35)
+        lbl_curso.grid(row=0, column=0, columnspan=35, padx=(400,0))
+
+        self.id_curso = StringVar()
+        self.cb_curso = Combobox(self.frameInicio, textvariable=self.id_curso, width=20,
+                                 state="readonly")
+        self.cb_curso.grid(row=1, column=0, columnspan=20, padx=(400,0))
+        self.cb_curso.bind("<<ComboboxSelected>>", self.selection_changed)
+
+
+        self.create_tab_alumnos()
+        self.create_tab_cursos()
+        self.create_tab_docentes()
+        self.update_tablas()
+
+    def create_tab_alumnos(self):
         #### TAB ALUMNOS ####
         formCreateCursante = FormCreateCursante()
-        btn_nuevoCursante = Button(frameCursantes, text="[+] Nuevo estudiante",
+        btn_nuevoCursante = Button(self.frameCursantes, text="[+] Nuevo estudiante",
                                 command=formCreateCursante.show)
         btn_nuevoCursante.grid(row=0, column=0, columnspan=30, pady=(5,10))
 
-        tablaCursantesFrame = Frame(frameCursantes, relief="groove", padding=(5,5))
+        tablaCursantesFrame = Frame(self.frameCursantes, relief="groove", padding=(5,5))
         tablaCursantesFrame.grid(row=1, column=0, columnspan=980)                                
 
         self.tablaCursantes = Tabla(tablaCursantesFrame, FormDetailsCursante())
-        
+
+    def create_tab_docentes(self):  
         #### TAB DOCENTES ####
         formCreateDocente = FormCreateDocente()
-        btn_nuevoDocente = Button(frameDocentes, text="[+] Nuevo docente",
+        btn_nuevoDocente = Button(self.frameDocentes, text="[+] Nuevo docente",
                                 command=formCreateDocente.show)
         btn_nuevoDocente.grid(row=0, column=0, columnspan=30, pady=(5,10))
 
-        tablaDocentesFrame = Frame(frameDocentes, relief="groove", padding=(5,5))
+        tablaDocentesFrame = Frame(self.frameDocentes, relief="groove", padding=(5,5))
         tablaDocentesFrame.grid(row=1, column=0, columnspan=980)
 
         self.tablaDocentes = Tabla(tablaDocentesFrame, FormDetailsDocente(),
                                    columns_width={"dni":15, "telefono":15, "titulo":30})
 
+    def create_tab_cursos(self):
         #### TAB CURSOS ####
         formCreateCurso = FormCreateCurso()
-        btn_nuevoCurso = Button(frameCursos, text="[+] Nuevo curso",
+        btn_nuevoCurso = Button(self.frameCursos, text="[+] Nuevo curso",
                                 command=formCreateCurso.show)
         btn_nuevoCurso.grid(row=0, column=0, columnspan=30, pady=(5,10))
 
-        tablaCursosFrame = Frame(frameCursos, relief="groove", padding=(5,5))
+        tablaCursosFrame = Frame(self.frameCursos, relief="groove", padding=(5,5))
         tablaCursosFrame.grid(row=1, column=0, columnspan=970)
 
         self.tablaCursos = Tabla(tablaCursosFrame, FormDetailsCurso(),
                                  columns_width={"nombre":40})
 
-
+    def create_tab_inicio(self):
         #### TAB INICIO ####
-        lbl_curso = Label(frameInicio, text="Seleccione el curso:")
-        lbl_curso.grid(row=0, column=0)
+        self.tabFrameCurso = Notebook(self.frameInicio)
+        self.tabFrameCurso.grid(row=2, column=0, columnspan=970)
 
-        self.id_curso = StringVar()
-        values = [dict(item)["codigo"] for item in Curso.get_all()["data"]]
-        cb_curso = Combobox(frameInicio, textvariable=self.id_curso, width=20,
-                               values=values, state="readonly")
-        cb_curso.current(0)
-        cb_curso.grid(row=1, column=0)
-        cb_curso.bind("<<ComboboxSelected>>", self.selection_changed)
+        frameInscriptos = Frame(self.tabFrameCurso, padding=(10,10))
+        self.tabFrameCurso.add(frameInscriptos, text="Inscriptos")
 
+        frameCurDoc = Frame(self.tabFrameCurso, padding=(10,10))
+        self.tabFrameCurso.add(frameCurDoc, text="Docentes")
 
-        tabFrameCurso = Notebook(frameInicio)
-        tabFrameCurso.grid(row=2, column=0)
-
-        frameInscriptos = Frame(tabFrameCurso, padding=(10,10))
-        tabFrameCurso.add(frameInscriptos, text="Inscriptos")
-
-        frameCurDoc = Frame(tabFrameCurso, padding=(10,10))
-        tabFrameCurso.add(frameCurDoc, text="Docentes")
-
-        frameAsiastencias = Frame(tabFrameCurso, padding=(10,10))
-        tabFrameCurso.add(frameAsiastencias, text="Asistencias")
+        frameAsiastencias = Frame(self.tabFrameCurso, padding=(10,10))
+        self.tabFrameCurso.add(frameAsiastencias, text="Asistencias")
 
 
         self.formAddAlumno = FormInscriptos("add")
@@ -174,6 +184,7 @@ class MainApplication(Tk):
         '''
         Actualiza el ID del curso que se seleccionó en el combobox.
         '''
+
         self.formRemoveDocente.id_curso = self.id_curso.get()
         self.formRemoveAlumno.id_curso = self.id_curso.get()
         self.formAsistencias.id_curso = self.id_curso.get()
@@ -184,12 +195,32 @@ class MainApplication(Tk):
         necesario actualizar la información visual o
         que la actualice directamente dependiendo el caso
         '''
+
+        if Curso.modified or MainApplication.first_evaluating:
+            MainApplication.first_evaluating = False
+            values = [dict(item)["codigo"] for item in Curso.get_all()["data"]]
+            self.cb_curso.config(values=(values if values else "--"))
+            self.cb_curso.current(self.cb_curso.current() if self.cb_curso.current() > 0 else 0)
+            
+            if values:
+                if not self.hay_cursos:
+                    self.hay_cursos = True
+                    self.create_tab_inicio()
+                self.selection_changed()    
+
+            else: 
+                if self.hay_cursos:
+                    self.hay_cursos = False
+                    self.tabFrameCurso.destroy()
+
         self.tablaCursos.check_update()
         self.tablaCursantes.check_update()
         self.tablaDocentes.check_update()
-        self.tablaDocentesMiembro.update_table()
-        self.tablaInscriptos.update_table()
-        self.tablaAsistencias.update_table()
+        
+        if self.hay_cursos:
+            self.tablaDocentesMiembro.update_table()
+            self.tablaInscriptos.update_table()
+            self.tablaAsistencias.update_table()
 
     def generate_certificate(self):
         data = Curso.get_data_certificados(self.id_curso.get())
@@ -234,7 +265,7 @@ class WinLogin(Tk):
         lbl_password = Label(self.root, text="Contraseña: ")
         lbl_password.grid(row=2, column=0, padx=(20,10))
 
-        self.e_password = Entry(self.root, width=25)
+        self.e_password = Entry(self.root, width=25, show="*")
         self.e_password.grid(row=2, column=1, padx=(10,20), pady=10) 
 
         btn_login = Button(self.root, text="Ingresar", command=self.login)
@@ -258,6 +289,7 @@ class WinLogin(Tk):
             self.root.destroy()
         else:
             mb.showerror("Datos inválidos", "El usuario y/o la contraseña son incorrectos.")
+
 
 if __name__ == "__main__":
     connection = None

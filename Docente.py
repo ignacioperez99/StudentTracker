@@ -31,9 +31,13 @@ class Docente:
             cur = Docente.connection.cursor()
             sql = """DELETE FROM `Docente` 
                      WHERE codigo = ?"""
+
+            sql_dc = """DELETE FROM `DocenteCurso` 
+                             WHERE docente = ?"""
             
             try:
                 cur.execute(sql, (id_register,))
+                cur.execute(sql_dc, (id_register,))
                 Docente.connection.commit()
                 self.need_update()
                 mb.showinfo("Información", "El registro se ha eliminado con éxito!")
@@ -174,7 +178,8 @@ class FormDetailsDocente(FormDocente):
         btn_modify.grid(row=13, column=0, columnspan=20, pady=5)
 
         btn_delete = Button(self.fieldsFrame, text="Eliminar",
-                                command=lambda: self.delete(self.id_register))
+                                command=lambda: (self.delete(self.id_register),
+                                                 self.hide()))
         btn_delete.grid(row=13, column=20, columnspan=20, pady=5)
 
     def show(self, id_register):
@@ -199,7 +204,8 @@ class FormCreateDocente(FormDocente):
         lbl_newTeacher.grid(row=0, column=0, columnspan=18, pady=(5,10))
 
         btn_createStudent = Button(self.fieldsFrame, text="Registrar",
-                                        command=lambda: self.create(self.get_data()))
+                                        command=lambda: (self.create(self.get_data()),
+                                                         self.hide()))
         btn_createStudent.grid(row=13, column=0, columnspan=40, pady=5)
 
     def show(self):

@@ -15,7 +15,7 @@ class Curso:
         '''
         Crea un nuevo registro.
         '''
-        if data[0] and data[1] and data[2] and data[3] and data[4] and data[5]:
+        if data[0] and data[1] and data[2] and data[3] and data[4]:
             cur = Curso.connection.cursor()
             sql = """INSERT INTO `Curso` VALUES 
                     (NULL, ?, ?, ?, ?, ?)"""
@@ -41,9 +41,21 @@ class Curso:
             cur = Curso.connection.cursor()
             sql = """DELETE FROM `Curso` 
                      WHERE codigo = ?"""
+
+            sql_insc = """DELETE FROM `Inscripto` 
+                          WHERE curso = ?"""
+
+            sql_dc = """DELETE FROM `DocenteCurso` 
+                        WHERE curso = ?"""
+
+            sql_asist = """DELETE FROM `Asistencia` 
+                           WHERE curso = ?"""
             
             try:
                 cur.execute(sql, (id_register,))
+                cur.execute(sql_insc, (id_register,))
+                cur.execute(sql_dc, (id_register,))
+                cur.execute(sql_asist, (id_register,))
                 Curso.connection.commit()
                 self.need_update()
                 mb.showinfo("Información", "El registro se ha eliminado con éxito!")
@@ -55,8 +67,8 @@ class Curso:
         '''
         Actualiza la información de un registro en particular.
         '''
-        
-        if data[0] and data[1] and data[2] and data[3] and data[4] and data[5]:
+
+        if data[0] and data[1] and data[2] and data[3] and data[4]:
             if mb.askyesnocancel("Confimación", "Está seguro que desea modificar \nlos datos del curso?"):
                 cur = Curso.connection.cursor()
                 data.append(id_register)
@@ -746,7 +758,8 @@ class FormCreateCurso(FormCurso):
         lbl_newStudent.grid(row=0, column=0, columnspan=18, pady=(5,10))
 
         btn_createStudent = Button(self.fieldsFrame, text="Registrar",
-                                   command=lambda: self.create(self.get_data()))
+                                   command=lambda: (self.create(self.get_data()),
+                                                    self.hide()))
         btn_createStudent.grid(row=11, column=0, columnspan=40, pady=(5,40))
     
     def show(self):
@@ -768,7 +781,8 @@ class FormDetailsCurso(FormCurso):
         btn_modify.grid(row=11, column=0, columnspan=20, pady=5)
 
         btn_delete = Button(self.fieldsFrame, text="Eliminar",
-                            command=lambda: self.delete(self.id_register))
+                            command=lambda: (self.delete(self.id_register),
+                                             self.hide()))
         btn_delete.grid(row=11, column=20, columnspan=20, pady=5)
 
     def show(self, id_register):
